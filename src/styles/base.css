@@ -95,6 +95,11 @@ button {
   unicode-bidi: isolate;
 }
 
+/* Fixed-width digits without forcing direction (for text mixed with words). */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -102,4 +107,14 @@ button {
     animation-duration: 1ms !important;
     transition-duration: 1ms !important;
   }
+}
+
+/* Visually hidden but available to screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

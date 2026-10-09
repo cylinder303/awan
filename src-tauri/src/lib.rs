@@ -4,6 +4,7 @@
 //! exact time while the window is minimized, hidden, or throttled. The UI
 //! only renders `TimerView` snapshots pushed through the `timer://state` event.
 
+mod backup;
 mod clock;
 mod commands;
 mod db;
@@ -30,6 +31,7 @@ const SNAPSHOT_KEY: &str = "active_session";
 pub const STATE_EVENT: &str = "timer://state";
 pub const FINISHED_EVENT: &str = "timer://finished";
 pub const SETTINGS_EVENT: &str = "settings://changed";
+pub const HISTORY_EVENT: &str = "history://changed";
 
 pub struct AppState {
     engine: Mutex<Engine>,
@@ -55,6 +57,7 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             setup(app)?;
             Ok(())
@@ -74,6 +77,13 @@ pub fn run() {
             commands::reset_settings,
             commands::list_sounds,
             commands::preview_sound,
+            commands::history::list_sessions,
+            commands::history::delete_session,
+            commands::history::focus_totals,
+            commands::history::recent_tasks,
+            commands::history::export_csv,
+            commands::history::export_backup,
+            commands::history::import_backup,
         ])
         .build(tauri::generate_context!())
         .expect("failed to build Awan")
@@ -148,8 +158,10 @@ where
 fn handle_events(app: &AppHandle, events: Vec<Event>) {
     for event in events {
         match event {
-            // Written to the history table from stage 3 onward.
-            Event::SessionEnded(_record) => {}
+            Event::SessionEnded(record) => {
+                let _ = lock(&app.state::<AppState>().db).insert_session(&record);
+                let _ = app.emit(HISTORY_EVENT, ());
+            }
             Event::Finished { ended, next, auto_started } => {
                 let state = app.state::<AppState>();
                 let lang = *lock(&state.lang);

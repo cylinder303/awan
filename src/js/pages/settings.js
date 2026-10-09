@@ -1,12 +1,14 @@
 // Settings page: timer, sound, appearance and language.
 
-import { sounds } from "../api.js";
+import { history, sounds } from "../api.js";
 import { settings } from "../settings.js";
 import { getLanguage, onLanguageChange, t } from "../i18n.js";
 import { icons } from "../icons.js";
 import { builtInThemes, themeName } from "../theme.js";
 import { contrast, MIN_TEXT_CONTRAST } from "../color.js";
 import { openDialog } from "../components/dialog.js";
+import { toast } from "../components/toast.js";
+import { dayKey } from "../dates.js";
 import { segmented, stepper, toggle } from "../components/controls.js";
 
 let soundIds = null;
@@ -36,6 +38,10 @@ export function mount(root) {
         row(t("settings.mode_colors"), switchControl("modeColors", t("settings.mode_colors")), t("settings.mode_colors_hint")),
       ]),
       section(t("settings.language"), [languageControl()]),
+      section(t("data.title"), [
+        row(t("data.backup"), actionButton(icons.download, t("data.backup_action"), backup), t("data.backup_hint")),
+        row(t("data.restore"), actionButton(icons.upload, t("data.restore_action"), restore), t("data.restore_hint")),
+      ]),
       resetButton(),
     );
     unsubscribe = settings.subscribe((s) => controls.forEach((c) => c(s)));
@@ -181,6 +187,42 @@ export function mount(root) {
     });
     controls.push((s) => c.set(s.language));
     return c.el;
+  }
+
+  function actionButton(icon, label, onClick) {
+    const btn = el("button", "btn btn--quiet btn--sm");
+    btn.type = "button";
+    btn.innerHTML = `${icon}<span></span>`;
+    btn.querySelector("span").textContent = label;
+    btn.addEventListener("click", onClick);
+    return btn;
+  }
+
+  async function backup() {
+    try {
+      if (await history.exportBackup(`awan-backup-${dayKey(Date.now())}.json`)) toast(t("data.backup_done"));
+    } catch {
+      toast(t("data.write_failed"), { error: true });
+    }
+  }
+
+  async function restore() {
+    const ok = await openDialog({
+      title: t("data.restore_title"),
+      body: t("data.restore_body"),
+      actions: [
+        { label: t("common.cancel"), value: false },
+        { label: t("data.restore_action"), value: true, kind: "primary" },
+      ],
+    });
+    if (!ok) return;
+    try {
+      const result = await history.importBackup();
+      if (result) toast(t("data.restore_done", { added: result.added, skipped: result.skipped }));
+    } catch (error) {
+      const known = ["not_backup", "newer_backup", "unreadable"];
+      toast(t(`data.error_${known.includes(error) ? error : "unreadable"}`), { error: true });
+    }
   }
 
   function resetButton() {

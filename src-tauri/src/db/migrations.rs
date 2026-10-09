@@ -9,6 +9,17 @@ const MIGRATIONS: &[&str] = &[
         key   TEXT PRIMARY KEY,
         value TEXT NOT NULL
     );",
+    // 2: session history. Times are UTC milliseconds since the Unix epoch.
+    "CREATE TABLE sessions (
+        id          INTEGER PRIMARY KEY,
+        mode        TEXT    NOT NULL CHECK (mode IN ('focus', 'short_break', 'long_break')),
+        started_at  INTEGER NOT NULL,
+        ended_at    INTEGER NOT NULL,
+        duration_ms INTEGER NOT NULL CHECK (duration_ms >= 0),
+        task        TEXT    NOT NULL DEFAULT '',
+        completed   INTEGER NOT NULL CHECK (completed IN (0, 1))
+    );
+    CREATE INDEX sessions_started_at ON sessions (started_at);",
 ];
 
 pub fn run(conn: &mut Connection) -> Result<(), String> {

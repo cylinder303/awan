@@ -3,6 +3,9 @@
 //! directory, so updates and reinstalls never touch it.
 
 mod migrations;
+mod sessions;
+
+pub use sessions::Session;
 
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{de::DeserializeOwned, Serialize};

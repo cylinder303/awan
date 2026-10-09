@@ -1,5 +1,7 @@
 //! Commands invoked from the web UI.
 
+pub mod history;
+
 use std::sync::atomic::Ordering;
 
 use serde::Serialize;

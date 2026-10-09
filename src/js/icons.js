@@ -24,6 +24,11 @@ export const icons = {
   plus: stroke('<path d="M12 6v12M6 12h12"/>'),
   volume: stroke('<path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>'),
   muted: stroke('<path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"/><path d="M16 10l4 4M20 10l-4 4"/>'),
+  download: stroke('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'),
+  upload: stroke('<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>'),
+  check: stroke('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
+  stop: stroke('<rect x="7" y="7" width="10" height="10" rx="2"/>'),
+  trash: stroke('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>'),
   reset: stroke('<path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/>'),
   skip: stroke('<path d="M5 5l10 7-10 7z"/><path d="M19 5v14"/>'),
 };

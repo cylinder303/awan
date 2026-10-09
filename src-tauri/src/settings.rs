@@ -33,6 +33,8 @@ pub struct Settings {
     /// "auto" follows the Windows display language; or "ar" / "en".
     pub language: String,
     pub always_on_top: bool,
+    /// First day of the week for weekly totals: "saturday", "sunday" or "monday".
+    pub week_start: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -59,6 +61,7 @@ impl Default for Settings {
             mode_colors: true,
             language: "auto".to_string(),
             always_on_top: false,
+            week_start: "saturday".to_string(),
         }
     }
 }
@@ -91,6 +94,9 @@ impl Settings {
         }
         if !matches!(self.language.as_str(), "auto" | "ar" | "en") {
             self.language = d.language;
+        }
+        if !matches!(self.week_start.as_str(), "saturday" | "sunday" | "monday") {
+            self.week_start = d.week_start;
         }
         let dc = CustomTheme::default();
         for (value, fallback) in [
@@ -165,6 +171,7 @@ mod tests {
             sound: "nope".into(),
             theme: "Bad Theme!".into(),
             language: "fr".into(),
+            week_start: "friday".into(),
             custom_theme: CustomTheme { background: "red".into(), accent: "#ABCDEF".into(), text: "#12345".into() },
             ..Settings::default()
         }
@@ -173,6 +180,7 @@ mod tests {
         assert_eq!(s.sound, d.sound);
         assert_eq!(s.theme, "auto");
         assert_eq!(s.language, "auto");
+        assert_eq!(s.week_start, "saturday");
         assert_eq!(s.custom_theme.background, d.custom_theme.background);
         assert_eq!(s.custom_theme.accent, "#abcdef");
         assert_eq!(s.custom_theme.text, d.custom_theme.text);

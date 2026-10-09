@@ -24,6 +24,17 @@ export const settingsApi = {
   onChanged: (fn) => listen("settings://changed", fn),
 };
 
+export const history = {
+  list: (before, limit = 200) => invoke("list_sessions", { before: before ?? null, limit }),
+  remove: (id) => invoke("delete_session", { id }),
+  focusTotals: (ranges) => invoke("focus_totals", { ranges }),
+  recentTasks: (limit = 8) => invoke("recent_tasks", { limit }),
+  exportCsv: (contents, fileName) => invoke("export_csv", { contents, fileName }),
+  exportBackup: (fileName) => invoke("export_backup", { fileName }),
+  importBackup: () => invoke("import_backup"),
+  onChanged: (fn) => listen("history://changed", fn),
+};
+
 export const sounds = {
   list: () => invoke("list_sounds"),
   preview: (id, volume) => invoke("preview_sound", { id, volume }),

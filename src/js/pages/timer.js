@@ -1,12 +1,13 @@
 // Timer page: mode tabs, progress ring, task field and controls.
 
-import { timer } from "../api.js";
+import { history, timer } from "../api.js";
 import { store } from "../store.js";
 import { t, translate, onLanguageChange } from "../i18n.js";
 import { formatClock } from "../format.js";
 import { icons, renderIcons } from "../icons.js";
 import { createRing } from "../components/ring.js";
 import { openDialog } from "../components/dialog.js";
+import { attachSuggestions } from "../components/suggest.js";
 
 const MODES = ["focus", "short_break", "long_break"];
 
@@ -23,8 +24,10 @@ const template = `
       </div>
     </div>
 
-    <input class="task" type="text" maxlength="120" spellcheck="false" autocomplete="off"
-           data-i18n-placeholder="timer.task_placeholder" />
+    <div class="task-wrap">
+      <input class="task" type="text" maxlength="120" spellcheck="false" autocomplete="off"
+             data-i18n-placeholder="timer.task_placeholder" />
+    </div>
 
     <div class="controls">
       <button class="icon-btn" data-action="reset" data-i18n-title="timer.reset" data-icon="reset"></button>
@@ -96,6 +99,8 @@ export function mount(root) {
     timer.setMode(mode);
   }
 
+  // Registered first so it can claim Enter/Escape while its list is open.
+  attachSuggestions(task, () => history.recentTasks(), (value) => timer.setTask(value));
   let typing = 0;
   task.addEventListener("input", () => {
     clearTimeout(typing);
@@ -106,6 +111,7 @@ export function mount(root) {
     timer.setTask(task.value);
   });
   task.addEventListener("keydown", (e) => {
+    if (e.defaultPrevented) return; // handled by the suggestion list
     if (e.key === "Enter" || e.key === "Escape") task.blur();
   });
 
