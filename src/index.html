@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Awan</title>
+    <link rel="stylesheet" href="styles/fonts.css" />
+    <link rel="stylesheet" href="styles/themes.css" />
+    <link rel="stylesheet" href="styles/base.css" />
+    <link rel="stylesheet" href="styles/components.css" />
+    <script type="module" src="js/main.js"></script>
+  </head>
+  <body data-mode="focus">
+    <div class="app">
+      <header class="titlebar" data-tauri-drag-region>
+        <div class="titlebar__brand" data-tauri-drag-region>
+          <span class="titlebar__logo" data-icon="logo"></span>
+          <span data-i18n="app.name"></span>
+        </div>
+        <div class="titlebar__actions">
+          <button class="tb-btn tb-btn--pin" id="tb-pin" aria-pressed="false" data-i18n-title="titlebar.pin" data-icon="pin"></button>
+          <button class="tb-btn" id="tb-min" data-i18n-title="titlebar.minimize" data-icon="minimize"></button>
+          <button class="tb-btn" id="tb-max" data-i18n-title="titlebar.maximize" data-icon="maximize"></button>
+          <button class="tb-btn tb-btn--close" id="tb-close" data-i18n-title="titlebar.close" data-icon="close"></button>
+        </div>
+      </header>
+
+      <main id="view" class="page"></main>
+
+      <nav class="nav">
+        <button class="nav__item" data-page="timer" aria-current="page"><span data-icon="timer"></span><span data-i18n="nav.timer"></span></button>
+        <button class="nav__item" data-page="history"><span data-icon="history"></span><span data-i18n="nav.history"></span></button>
+        <button class="nav__item" data-page="goals"><span data-icon="goals"></span><span data-i18n="nav.goals"></span></button>
+        <button class="nav__item" data-page="settings"><span data-icon="settings"></span><span data-i18n="nav.settings"></span></button>
+      </nav>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "awan",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Awan: a minimal Pomodoro timer for Windows",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "icons": "tauri icon scripts/icon.svg",
+    "test": "node --test \"tests/*.test.js\""
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.1"
+  }
+}

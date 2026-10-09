@@ -1,0 +1,47 @@
+/*
+ * Themes. Each theme is one block of color variables.
+ * To add a theme: copy a block, give it a new data-theme name, change the colors,
+ * and register it in js/theme.js.
+ *
+ *   --bg          window background
+ *   --surface     raised surfaces (dialogs, inputs)
+ *   --surface-2   subtle fills (hover, chips)
+ *   --text        main text
+ *   --text-muted  secondary text
+ *   --border      hairlines
+ *   --ring-track  unfilled part of the progress ring
+ *   --focus / --short / --long   accent color for each timer mode
+ *   --on-accent   text/icons drawn on top of an accent color
+ */
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f4f0;
+  --surface: #ffffff;
+  --surface-2: #ece9e3;
+  --text: #1f2328;
+  --text-muted: #6b6f76;
+  --border: #e2ded6;
+  --ring-track: #e6e2da;
+  --focus: #d0604b;
+  --short: #3a8a73;
+  --long: #4a6bb0;
+  --on-accent: #ffffff;
+  --shadow: 0 10px 30px rgba(31, 35, 40, 0.12);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #15181c;
+  --surface: #1d2126;
+  --surface-2: #262b31;
+  --text: #e8e5e0;
+  --text-muted: #9198a1;
+  --border: #2b3037;
+  --ring-track: #282d34;
+  --focus: #e8795f;
+  --short: #5bb39a;
+  --long: #7f9de0;
+  --on-accent: #15181c;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}

@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Rust / Tauri build output
+src-tauri/target/
+src-tauri/gen/
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
