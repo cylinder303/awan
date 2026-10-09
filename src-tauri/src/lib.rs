@@ -9,6 +9,7 @@ mod commands;
 mod db;
 mod i18n;
 mod power;
+mod settings;
 mod sound;
 mod timer;
 mod window_ext;
@@ -22,15 +23,18 @@ use tauri_plugin_notification::NotificationExt;
 
 use db::Db;
 use i18n::Lang;
-use timer::{Engine, Event, Now, Snapshot, Status, TimerConfig, TimerView};
+use settings::{Settings, SETTINGS_KEY};
+use timer::{Engine, Event, Now, Snapshot, Status, TimerView};
 
 const SNAPSHOT_KEY: &str = "active_session";
 pub const STATE_EVENT: &str = "timer://state";
 pub const FINISHED_EVENT: &str = "timer://finished";
+pub const SETTINGS_EVENT: &str = "settings://changed";
 
 pub struct AppState {
     engine: Mutex<Engine>,
     db: Mutex<Db>,
+    settings: Mutex<Settings>,
     lang: Mutex<Lang>,
     /// An interrupted session was restored and the user has not yet chosen
     /// between resuming it and starting fresh.
@@ -65,6 +69,11 @@ pub fn run() {
             commands::resolve_resume,
             commands::set_language,
             commands::app_ready,
+            commands::get_settings,
+            commands::update_settings,
+            commands::reset_settings,
+            commands::list_sounds,
+            commands::preview_sound,
         ])
         .build(tauri::generate_context!())
         .expect("failed to build Awan")
@@ -79,8 +88,9 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let dir = app.path().app_data_dir()?;
     std::fs::create_dir_all(&dir)?;
     let db = Db::open(&dir.join("awan.db"))?;
+    let settings = db.get::<Settings>(SETTINGS_KEY)?.unwrap_or_default().sanitized();
 
-    let mut engine = Engine::new(TimerConfig::default());
+    let mut engine = Engine::new(settings.timer_config());
     let mut pending = false;
     if let Some(snap) = db.get::<Snapshot>(SNAPSHOT_KEY)? {
         if snap.elapsed_ms > 0 {
@@ -94,12 +104,14 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(AppState {
         engine: Mutex::new(engine),
         db: Mutex::new(db),
+        settings: Mutex::new(settings.clone()),
         lang: Mutex::new(Lang::En),
         pending_resume: AtomicBool::new(pending),
     });
 
     if let Some(window) = app.get_webview_window("main") {
         window_ext::apply_corner_preference(&window);
+        let _ = window.set_always_on_top(settings.always_on_top);
         // The UI shows the window once it has painted (no white flash). If it
         // never reports in, show it anyway.
         std::thread::spawn(move || {
@@ -139,10 +151,15 @@ fn handle_events(app: &AppHandle, events: Vec<Event>) {
             // Written to the history table from stage 3 onward.
             Event::SessionEnded(_record) => {}
             Event::Finished { ended, next, auto_started } => {
-                let lang = *lock(&app.state::<AppState>().lang);
+                let state = app.state::<AppState>();
+                let lang = *lock(&state.lang);
                 let (title, body) = i18n::finished(lang, ended, next);
                 let _ = app.notification().builder().title(title).body(body).show();
-                sound::play(sound::DEFAULT_SOUND, 0.8);
+                let (id, volume) = {
+                    let s = lock(&state.settings);
+                    (s.sound.clone(), s.alert_volume())
+                };
+                sound::play(&id, volume);
                 let _ = app.emit(
                     FINISHED_EVENT,
                     serde_json::json!({ "ended": ended, "next": next, "autoStarted": auto_started }),
@@ -151,6 +168,23 @@ fn handle_events(app: &AppHandle, events: Vec<Event>) {
             Event::SleepPaused => {}
         }
     }
+}
+
+/// Validate, store and apply new settings, then tell every window.
+pub(crate) fn save_settings(app: &AppHandle, next: Settings) -> Settings {
+    let next = next.sanitized();
+    let state = app.state::<AppState>();
+    let _ = lock(&state.db).set(SETTINGS_KEY, &next);
+    *lock(&state.settings) = next.clone();
+    apply(app, |engine, _| {
+        engine.set_config(next.timer_config());
+        Vec::new()
+    });
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.set_always_on_top(next.always_on_top);
+    }
+    let _ = app.emit(SETTINGS_EVENT, &next);
+    next
 }
 
 fn save_snapshot(app: &AppHandle) {

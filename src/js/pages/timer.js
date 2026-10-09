@@ -53,8 +53,8 @@ export function mount(root) {
   let frame = 0;
 
   function render(view) {
-    time.textContent = formatClock(view.remaining_ms);
-    cycle.textContent = t("timer.cycle", { index: view.cycle_index, total: view.cycle_len });
+    time.textContent = formatClock(view.remainingMs);
+    cycle.textContent = t("timer.cycle", { index: view.cycleIndex, total: view.cycleLen });
     tabs.forEach((tab) => tab.setAttribute("aria-selected", String(tab.dataset.value === view.mode)));
 
     const running = view.status === "running";
@@ -62,20 +62,20 @@ export function mount(root) {
     const label = running ? t("timer.pause") : view.status === "paused" ? t("timer.resume") : t("timer.start");
     play.title = label;
     play.setAttribute("aria-label", label);
-    notice.hidden = !view.paused_by_sleep;
+    notice.hidden = !view.pausedBySleep;
 
     if (document.activeElement !== task && task.value !== view.task) task.value = view.task;
 
     cancelAnimationFrame(frame);
     if (running) animate();
-    else ring.set(view.elapsed_ms / view.duration_ms);
+    else ring.set(view.elapsedMs / view.durationMs);
   }
 
   // Between backend updates, glide the ring using the time since the last update.
   function animate() {
     const view = store.get();
     if (!view || view.status !== "running") return;
-    ring.set((view.elapsed_ms + store.age()) / view.duration_ms);
+    ring.set((view.elapsedMs + store.age()) / view.durationMs);
     frame = requestAnimationFrame(animate);
   }
 

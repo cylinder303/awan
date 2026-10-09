@@ -94,6 +94,7 @@ pub enum Event {
 
 /// What the UI needs to render. Sent to the frontend as JSON.
 #[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct TimerView {
     pub mode: Mode,
     pub status: Status,
@@ -117,6 +118,9 @@ pub struct Snapshot {
     pub task: String,
     pub started_at: Option<i64>,
     pub saved_at: i64,
+    /// Length the session started with (absent in older snapshots).
+    #[serde(default)]
+    pub duration_ms: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
@@ -135,6 +139,9 @@ pub struct Engine {
     paused_by_sleep: bool,
     /// Wall time the current session was first started.
     started_at: Option<i64>,
+    /// Length fixed when the session started, so changing settings
+    /// mid-session only affects the sessions that follow.
+    locked_ms: Option<u64>,
 }
 
 impl Engine {
@@ -150,7 +157,13 @@ impl Engine {
             task: String::new(),
             paused_by_sleep: false,
             started_at: None,
+            locked_ms: None,
         }
+    }
+
+    /// Length of the current session.
+    pub fn duration_ms(&self) -> u64 {
+        self.locked_ms.unwrap_or_else(|| self.cfg.duration(self.mode))
     }
 
     pub fn elapsed_ms(&self, now: Now) -> u64 {
@@ -162,9 +175,7 @@ impl Engine {
     }
 
     pub fn remaining_ms(&self, now: Now) -> u64 {
-        self.cfg
-            .duration(self.mode)
-            .saturating_sub(self.elapsed_ms(now))
+        self.duration_ms().saturating_sub(self.elapsed_ms(now))
     }
 
     pub fn view(&self, now: Now) -> TimerView {
@@ -174,7 +185,7 @@ impl Engine {
             Mode::ShortBreak => self.cycle_pos.clamp(1, len),
             Mode::LongBreak => len,
         };
-        let duration = self.cfg.duration(self.mode);
+        let duration = self.duration_ms();
         let elapsed = self.elapsed_ms(now).min(duration);
         TimerView {
             mode: self.mode,
@@ -196,6 +207,9 @@ impl Engine {
         }
         if self.started_at.is_none() {
             self.started_at = Some(now.wall);
+        }
+        if self.locked_ms.is_none() {
+            self.locked_ms = Some(self.cfg.duration(self.mode));
         }
         self.segment_start = Some(now.mono);
         self.last_tick = Some(now);
@@ -252,6 +266,12 @@ impl Engine {
         self.task = task.trim().chars().take(120).collect();
     }
 
+    /// Apply new settings. A session already under way keeps its length.
+    pub fn set_config(&mut self, cfg: TimerConfig) {
+        self.cfg = cfg;
+        self.cycle_pos = self.cycle_pos.min(self.cfg.sessions_before_long.max(1));
+    }
+
     /// The machine is about to sleep: pause and remember why.
     #[cfg_attr(not(windows), allow(dead_code))]
     pub fn suspend(&mut self, now: Now) -> Vec<Event> {
@@ -293,11 +313,12 @@ impl Engine {
     pub fn snapshot(&self, now: Now) -> Snapshot {
         Snapshot {
             mode: self.mode,
-            elapsed_ms: self.elapsed_ms(now).min(self.cfg.duration(self.mode)),
+            elapsed_ms: self.elapsed_ms(now).min(self.duration_ms()),
             cycle_pos: self.cycle_pos,
             task: self.task.clone(),
             started_at: self.started_at,
             saved_at: now.wall,
+            duration_ms: self.locked_ms,
         }
     }
 
@@ -306,10 +327,14 @@ impl Engine {
         self.mode = snap.mode;
         self.cycle_pos = snap.cycle_pos.min(self.cfg.sessions_before_long.max(1));
         self.task = snap.task.clone();
-        self.banked_ms = snap.elapsed_ms.min(self.cfg.duration(snap.mode));
+        self.locked_ms = Some(snap.duration_ms.unwrap_or_else(|| self.cfg.duration(snap.mode)));
+        self.banked_ms = snap.elapsed_ms.min(self.duration_ms());
         self.segment_start = None;
         self.started_at = snap.started_at;
         self.status = if self.banked_ms > 0 { Status::Paused } else { Status::Idle };
+        if self.status == Status::Idle {
+            self.locked_ms = None;
+        }
         self.paused_by_sleep = false;
     }
 
@@ -334,13 +359,14 @@ impl Engine {
         self.banked_ms = 0;
         self.segment_start = None;
         self.started_at = None;
+        self.locked_ms = None;
         self.status = Status::Idle;
         self.paused_by_sleep = false;
     }
 
     /// Record the current session as stopped early, if it is worth keeping.
     fn abandon(&mut self, now: Now) -> Vec<Event> {
-        let elapsed = self.elapsed_ms(now).min(self.cfg.duration(self.mode));
+        let elapsed = self.elapsed_ms(now).min(self.duration_ms());
         match self.started_at {
             Some(started_at) if elapsed >= MIN_RECORD_MS => {
                 vec![Event::SessionEnded(SessionRecord {
@@ -362,7 +388,7 @@ impl Engine {
             mode: ended,
             started_at: self.started_at.unwrap_or(now.wall),
             ended_at: now.wall,
-            duration_ms: self.cfg.duration(ended),
+            duration_ms: self.duration_ms(),
             task: self.task.clone(),
             completed: true,
         };
@@ -653,11 +679,76 @@ mod tests {
             task: String::new(),
             started_at: Some(c.wall - 90_000),
             saved_at: c.wall,
+            duration_ms: None,
         });
         let events = e.start_fresh(c.advance(1_000));
         assert_eq!(events.len(), 1);
         let v = e.view(c.now());
         assert_eq!((v.mode, v.status, v.cycle_index), (Mode::Focus, Status::Idle, 1));
+    }
+
+    #[test]
+    fn new_durations_apply_to_next_session_not_the_running_one() {
+        let mut c = Clock::new();
+        let mut e = Engine::new(short_cfg());
+        e.start(c.now());
+        c.run(&mut e, 3 * MIN);
+        e.set_config(TimerConfig { focus_ms: 2 * MIN, short_break_ms: 7 * MIN, ..short_cfg() });
+        let v = e.view(c.now());
+        assert_eq!((v.duration_ms, v.remaining_ms), (10 * MIN, 7 * MIN), "running session keeps its length");
+        let events = c.run(&mut e, 7 * MIN);
+        match &events[0] {
+            Event::SessionEnded(r) => assert_eq!(r.duration_ms, 10 * MIN),
+            other => panic!("unexpected {other:?}"),
+        }
+        assert_eq!(e.view(c.now()).duration_ms, 7 * MIN, "next session uses the new length");
+    }
+
+    #[test]
+    fn idle_session_picks_up_new_duration_immediately() {
+        let c = Clock::new();
+        let mut e = Engine::new(short_cfg());
+        e.set_config(TimerConfig { focus_ms: 50 * MIN, ..short_cfg() });
+        assert_eq!(e.view(c.now()).remaining_ms, 50 * MIN);
+    }
+
+    #[test]
+    fn fewer_sessions_per_cycle_clamps_position() {
+        let mut c = Clock::new();
+        let mut e = Engine::new(short_cfg());
+        for _ in 0..3 {
+            e.start(c.now());
+            let d = e.duration_ms();
+            c.run(&mut e, d);
+            e.skip(c.now()); // skip the break
+        }
+        e.set_config(TimerConfig { sessions_before_long: 2, ..short_cfg() });
+        let v = e.view(c.now());
+        assert_eq!((v.cycle_index, v.cycle_len), (2, 2));
+        e.start(c.now());
+        c.run(&mut e, 10 * MIN);
+        assert_eq!(e.mode, Mode::LongBreak);
+    }
+
+    #[test]
+    fn restoring_keeps_original_length_and_reads_old_snapshots() {
+        let mut c = Clock::new();
+        let mut e = Engine::new(short_cfg());
+        e.start(c.now());
+        c.run(&mut e, MIN);
+        let snap = e.snapshot(c.now());
+        assert_eq!(snap.duration_ms, Some(10 * MIN));
+
+        let mut e2 = Engine::new(TimerConfig { focus_ms: 30 * MIN, ..short_cfg() });
+        e2.restore(&snap);
+        assert_eq!(e2.view(c.now()).duration_ms, 10 * MIN);
+
+        let old: Snapshot = serde_json::from_str(
+            r#"{"mode":"focus","elapsed_ms":60000,"cycle_pos":0,"task":"","started_at":1,"saved_at":2}"#,
+        )
+        .unwrap();
+        e2.restore(&old);
+        assert_eq!(e2.view(c.now()).duration_ms, 30 * MIN);
     }
 
     #[test]

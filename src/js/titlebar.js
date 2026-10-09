@@ -2,13 +2,13 @@
 // Dragging and double-click-to-maximize come from data-tauri-drag-region.
 
 import { appWindow } from "./api.js";
+import { settings } from "./settings.js";
 import { icons } from "./icons.js";
 import { t, onLanguageChange } from "./i18n.js";
 
 export function initTitlebar() {
   const pin = document.getElementById("tb-pin");
   const max = document.getElementById("tb-max");
-  let pinned = false;
   let maximized = false;
 
   function label(btn, key) {
@@ -17,6 +17,7 @@ export function initTitlebar() {
   }
 
   function renderPin() {
+    const pinned = !!settings.get()?.alwaysOnTop;
     pin.setAttribute("aria-pressed", String(pinned));
     label(pin, pinned ? "titlebar.unpin" : "titlebar.pin");
   }
@@ -34,17 +35,14 @@ export function initTitlebar() {
   document.getElementById("tb-min").addEventListener("click", () => appWindow.minimize());
   document.getElementById("tb-close").addEventListener("click", () => appWindow.close());
   max.addEventListener("click", () => appWindow.toggleMaximize());
-  pin.addEventListener("click", async () => {
-    pinned = !pinned;
-    await appWindow.setAlwaysOnTop(pinned);
-    renderPin();
-  });
+  // The backend applies "always on top" when the setting is saved.
+  pin.addEventListener("click", () => settings.update({ alwaysOnTop: !settings.get().alwaysOnTop }));
 
   appWindow.onResized(syncMaximized);
+  settings.subscribe(renderPin);
   onLanguageChange(() => {
     renderPin();
     renderMax();
   });
-  renderPin();
   syncMaximized();
 }

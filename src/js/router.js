@@ -2,13 +2,14 @@
 // mount(root) -> cleanup().
 
 import * as timerPage from "./pages/timer.js";
+import * as settingsPage from "./pages/settings.js";
 import { create as soon } from "./pages/soon.js";
 
 const pages = {
   timer: timerPage.mount,
   history: soon("history"),
   goals: soon("goals"),
-  settings: soon("settings"),
+  settings: settingsPage.mount,
 };
 
 let current = null;

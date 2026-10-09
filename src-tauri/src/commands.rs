@@ -6,8 +6,9 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager, State, WebviewWindow};
 
 use crate::i18n::Lang;
+use crate::settings::Settings;
 use crate::timer::{Mode, TimerView};
-use crate::{apply, clock, lock, window_ext, AppState};
+use crate::{apply, clock, lock, save_settings, sound, window_ext, AppState};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -77,4 +78,30 @@ pub fn set_language(state: State<'_, AppState>, lang: String) {
 #[tauri::command]
 pub fn app_ready(window: WebviewWindow) {
     window_ext::reveal(&window);
+}
+
+#[tauri::command]
+pub fn get_settings(state: State<'_, AppState>) -> Settings {
+    lock(&state.settings).clone()
+}
+
+#[tauri::command]
+pub fn update_settings(app: AppHandle, settings: Settings) -> Settings {
+    save_settings(&app, settings)
+}
+
+#[tauri::command]
+pub fn reset_settings(app: AppHandle) -> Settings {
+    save_settings(&app, Settings::default())
+}
+
+#[tauri::command]
+pub fn list_sounds() -> Vec<&'static str> {
+    sound::ids()
+}
+
+/// Play a sound from the settings page at the volume being chosen.
+#[tauri::command]
+pub fn preview_sound(id: String, volume: u32) {
+    sound::play(&id, volume.min(100) as f32 / 100.0);
 }

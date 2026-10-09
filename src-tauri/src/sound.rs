@@ -3,7 +3,21 @@
 
 pub const DEFAULT_SOUND: &str = "chime";
 
-const SOUNDS: &[(&str, &[u8])] = &[("chime", include_bytes!("../sounds/chime.wav"))];
+const SOUNDS: &[(&str, &[u8])] = &[
+    ("chime", include_bytes!("../sounds/chime.wav")),
+    ("bell", include_bytes!("../sounds/bell.wav")),
+    ("marimba", include_bytes!("../sounds/marimba.wav")),
+    ("pulse", include_bytes!("../sounds/pulse.wav")),
+    ("harp", include_bytes!("../sounds/harp.wav")),
+];
+
+pub fn ids() -> Vec<&'static str> {
+    SOUNDS.iter().map(|(id, _)| *id).collect()
+}
+
+pub fn exists(id: &str) -> bool {
+    SOUNDS.iter().any(|(name, _)| *name == id)
+}
 
 /// Play a bundled sound at `volume` (0.0..=1.0). Unknown ids fall back to the default.
 pub fn play(id: &str, volume: f32) {

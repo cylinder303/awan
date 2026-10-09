@@ -42,9 +42,31 @@ def render(name, notes, seconds, peak=0.55):
     print("wrote", OUT / f"{name}.wav")
 
 
+def tone(freq, start, length, fade=0.04):
+    """A soft sine beep with smooth edges."""
+    def f(t):
+        t -= start
+        if t < 0 or t > length:
+            return 0.0
+        edge = min(1.0, t / fade, (length - t) / fade)
+        return edge * math.sin(2 * math.pi * freq * t)
+    return f
+
+
+MARIMBA = ((1.0, 1.0), (3.93, 0.25), (9.2, 0.05))
+HARP = ((1.0, 1.0), (2.0, 0.5), (3.0, 0.2), (4.0, 0.08))
+
 SOUNDS = {
     # Two rising bell notes.
     "chime": ([bell(659.25, 0.0, 1.6, 0.45), bell(987.77, 0.18, 1.6, 0.55)], 1.8),
+    # One deep, long bell.
+    "bell": ([bell(523.25, 0.0, 2.4, 0.9, ((1.0, 1.0), (2.76, 0.3), (5.4, 0.1), (0.5, 0.25)))], 2.5),
+    # Three wooden notes going up.
+    "marimba": ([bell(f, i * 0.16, 0.9, 0.18, MARIMBA) for i, f in enumerate((523.25, 659.25, 783.99))], 1.3),
+    # Two pairs of gentle beeps.
+    "pulse": ([tone(880, t, 0.09) for t in (0.0, 0.16, 0.6, 0.76)], 1.0),
+    # A slow plucked arpeggio.
+    "harp": ([bell(f, i * 0.11, 1.4, 0.35, HARP) for i, f in enumerate((392.0, 493.88, 587.33, 783.99))], 1.9),
 }
 
 if __name__ == "__main__":

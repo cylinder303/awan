@@ -17,6 +17,18 @@ export const timer = {
   onFinished: (fn) => listen("timer://finished", fn),
 };
 
+export const settingsApi = {
+  get: () => invoke("get_settings"),
+  update: (settings) => invoke("update_settings", { settings }),
+  reset: () => invoke("reset_settings"),
+  onChanged: (fn) => listen("settings://changed", fn),
+};
+
+export const sounds = {
+  list: () => invoke("list_sounds"),
+  preview: (id, volume) => invoke("preview_sound", { id, volume }),
+};
+
 export const app = {
   ready: () => invoke("app_ready"),
   setLanguage: (lang) => invoke("set_language", { lang }),
@@ -29,6 +41,5 @@ export const appWindow = {
   toggleMaximize: () => current().toggleMaximize(),
   isMaximized: () => current().isMaximized(),
   close: () => current().close(),
-  setAlwaysOnTop: (on) => current().setAlwaysOnTop(on),
   onResized: (fn) => current().onResized(fn),
 };

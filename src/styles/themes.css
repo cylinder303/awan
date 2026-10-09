@@ -1,20 +1,28 @@
 /*
- * Themes. Each theme is one block of color variables.
- * To add a theme: copy a block, give it a new data-theme name, change the colors,
- * and register it in js/theme.js.
+ * Themes. Each theme is one block of color variables, and this is the only
+ * file you need to edit to add a theme:
+ *
+ *   1. Copy a block below and give it a new id: [data-theme="ocean"]
+ *      (lowercase letters, digits and dashes).
+ *   2. Set --theme-name-en / --theme-name-ar (shown in the theme picker).
+ *   3. Change the colors. The app finds the new theme automatically.
  *
  *   --bg          window background
- *   --surface     raised surfaces (dialogs, inputs)
- *   --surface-2   subtle fills (hover, chips)
+ *   --surface     raised surfaces (dialogs, inputs, cards)
+ *   --surface-2   subtle fills (hover, chips, tracks)
  *   --text        main text
  *   --text-muted  secondary text
  *   --border      hairlines
  *   --ring-track  unfilled part of the progress ring
- *   --focus / --short / --long   accent color for each timer mode
- *   --on-accent   text/icons drawn on top of an accent color
+ *   --focus / --short / --long   accent for each timer mode
+ *                 (with "one color for all modes", --focus is used everywhere)
+ *   --on-accent   text and icons drawn on an accent color
+ *   --shadow      shadow for dialogs
  */
 
 [data-theme="light"] {
+  --theme-name-en: "Light";
+  --theme-name-ar: "فاتح";
   color-scheme: light;
   --bg: #f6f4f0;
   --surface: #ffffff;
@@ -31,6 +39,8 @@
 }
 
 [data-theme="dark"] {
+  --theme-name-en: "Dark";
+  --theme-name-ar: "داكن";
   color-scheme: dark;
   --bg: #15181c;
   --surface: #1d2126;
@@ -44,4 +54,97 @@
   --long: #7f9de0;
   --on-accent: #15181c;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="oled"] {
+  --theme-name-en: "True black";
+  --theme-name-ar: "أسود تام";
+  color-scheme: dark;
+  --bg: #000000;
+  --surface: #0d0d0e;
+  --surface-2: #18181a;
+  --text: #ececec;
+  --text-muted: #8a8a8f;
+  --border: #1f1f22;
+  --ring-track: #1a1a1c;
+  --focus: #ff7a5c;
+  --short: #4fd1a5;
+  --long: #7aa2ff;
+  --on-accent: #000000;
+  --shadow: 0 0 0 1px #2a2a2e;
+}
+
+[data-theme="midnight"] {
+  --theme-name-en: "Midnight blue";
+  --theme-name-ar: "أزرق ليلي";
+  color-scheme: dark;
+  --bg: #0f1729;
+  --surface: #172039;
+  --surface-2: #1e2946;
+  --text: #e4e9f5;
+  --text-muted: #8f9bb8;
+  --border: #253152;
+  --ring-track: #1f2a49;
+  --focus: #f0a35e;
+  --short: #5ec4c4;
+  --long: #a493f2;
+  --on-accent: #0f1729;
+  --shadow: 0 10px 30px rgba(3, 7, 18, 0.55);
+}
+
+[data-theme="olive"] {
+  --theme-name-en: "Olive green";
+  --theme-name-ar: "أخضر زيتوني";
+  color-scheme: light;
+  --bg: #eef0e6;
+  --surface: #f9faf4;
+  --surface-2: #e2e6d5;
+  --text: #2a311f;
+  --text-muted: #6a7359;
+  --border: #d5dbc5;
+  --ring-track: #dce1cd;
+  --focus: #66782f;
+  --short: #3b8577;
+  --long: #8b6a3a;
+  --on-accent: #ffffff;
+  --shadow: 0 10px 30px rgba(42, 49, 31, 0.14);
+}
+
+[data-theme="beige"] {
+  --theme-name-en: "Warm beige";
+  --theme-name-ar: "بيج دافئ";
+  color-scheme: light;
+  --bg: #f3ece1;
+  --surface: #fbf7f0;
+  --surface-2: #e8decf;
+  --text: #3a2f25;
+  --text-muted: #85766a;
+  --border: #dfd3c1;
+  --ring-track: #e4d8c6;
+  --focus: #bf6440;
+  --short: #687f5f;
+  --long: #82699a;
+  --on-accent: #ffffff;
+  --shadow: 0 10px 30px rgba(58, 47, 37, 0.14);
+}
+
+/*
+ * Custom theme: built from three colors chosen in Settings. The app sets
+ * --c-bg, --c-text, --c-accent (plus derived --c-short, --c-long,
+ * --c-on-accent and --c-scheme); everything else is mixed from them.
+ */
+[data-theme="custom"] {
+  color-scheme: var(--c-scheme, dark);
+  --bg: var(--c-bg, #1b2230);
+  --text: var(--c-text, #ece7df);
+  --surface: color-mix(in srgb, var(--bg) 93%, var(--text));
+  --surface-2: color-mix(in srgb, var(--bg) 87%, var(--text));
+  --text-muted: color-mix(in srgb, var(--text) 62%, var(--bg));
+  --border: color-mix(in srgb, var(--bg) 84%, var(--text));
+  --ring-track: color-mix(in srgb, var(--bg) 86%, var(--text));
+  --focus: var(--c-accent, #e8a15f);
+  --short: var(--c-short, var(--focus));
+  --long: var(--c-long, var(--focus));
+  --on-accent: var(--c-on-accent, #000000);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }

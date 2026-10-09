@@ -2,8 +2,9 @@
 
 import { app, timer } from "./api.js";
 import { store } from "./store.js";
+import { settings } from "./settings.js";
 import { detectLanguage, setLanguage, t } from "./i18n.js";
-import { setTheme } from "./theme.js";
+import { applyTheme } from "./theme.js";
 import { renderIcons } from "./icons.js";
 import { formatClock } from "./format.js";
 import { initTitlebar } from "./titlebar.js";
@@ -16,8 +17,8 @@ async function askResume(view) {
     title: t("resume.title"),
     body: t("resume.body", {
       mode: t(`mode.${view.mode}`),
-      elapsed: formatClock(view.elapsed_ms),
-      duration: formatClock(view.duration_ms),
+      elapsed: formatClock(view.elapsedMs),
+      duration: formatClock(view.durationMs),
     }),
     actions: [
       { label: t("resume.fresh"), value: false },
@@ -28,11 +29,22 @@ async function askResume(view) {
   timer.resolveResume(resume);
 }
 
+let appliedLanguage = null;
+
+/** Apply appearance and language settings to the window. */
+function applySettings(s) {
+  applyTheme(s);
+  const lang = s.language === "auto" ? detectLanguage() : s.language;
+  if (lang !== appliedLanguage) {
+    appliedLanguage = lang;
+    setLanguage(lang);
+    app.setLanguage(lang);
+  }
+}
+
 async function boot() {
-  setTheme("auto");
-  const lang = detectLanguage();
-  setLanguage(lang);
-  app.setLanguage(lang);
+  await settings.load();
+  settings.subscribe(applySettings);
   renderIcons();
   initTitlebar();
 
