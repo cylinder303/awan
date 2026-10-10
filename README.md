@@ -43,6 +43,28 @@ A minimal, elegant Pomodoro timer for Windows
 - **السمات:** ست سمات جاهزة، وسمة تتبع وضع ويندوز، وسمة مخصّصة بألوانك.
 - **بياناتك على جهازك:** تُحفظ في مجلد AppData، ولا تُحذف عند التحديث أو إعادة التثبيت، ويمكن نسخها احتياطيًا في ملف واحد.
 
+### قادم قريبًا
+
+ميزتان مخطط لهما في الإصدار القادم:
+
+**الخطوط**
+
+- اختيار خط لأرقام المؤقت وخط للواجهة، كلٌّ على حدة.
+- خطوط عربية مضمَّنة تعمل دون إنترنت، وكلها بترخيص حر.
+- استخدام أي خط مثبّت على ويندوز، أو إضافة ملف خط (TTF أو OTF) بنفسك.
+- أرقام المؤقت بعرض ثابت مهما كان الخط، فلا يهتز الوقت أثناء العدّ.
+- معاينة فورية قبل الاعتماد، وعودة تلقائية إلى الخط الافتراضي إن لم يدعم الخط الحروف العربية.
+
+**المواظبة (Streak)**
+
+- عدد الأيام المتتالية التي حققت فيها هدفك اليومي، أو أكملت فيها جلسة تركيز واحدة على الأقل إن لم تحدد هدفًا يوميًا.
+- أيام راحة تختارها، مثل الجمعة، لا تقطع مواظبتك.
+- مواظبة أسبوعية لمن يفضّل إيقاعًا أهدأ: الأسابيع المتتالية التي حققت فيها هدفك الأسبوعي.
+- أطول مواظبة لك، وإشعار هادئ حين تتجاوزها.
+- خريطة لأيام الأشهر الأخيرة في صفحة الأهداف، يشتدّ لون كل يوم بقدر تركيزك فيه.
+- تُحسب من سجلك الحالي، فتظهر مواظبتك من أول يوم بعد التحديث.
+- بلا ضغط: لا رسائل لوم ولا تنبيهات حين تنقطع.
+
 ### التنزيل والتثبيت
 
 1. افتح صفحة **[الإصدارات (Releases)](../../releases/latest)** ونزّل ملف `Awan_..._x64-setup.exe`.
@@ -113,6 +135,28 @@ git tag v1.1.0 && git push && git push origin v1.1.0
 - **Goals:** a weekly goal in hours and an optional daily goal, with a notification when reached.
 - **Themes:** six built-in themes, an "auto" theme that follows Windows, and a custom theme from your own colors.
 - **Your data stays on your PC:** stored in AppData, kept across updates and reinstalls, and exportable to a single backup file.
+
+### Coming next
+
+Two features planned for the next release:
+
+**Fonts**
+
+- Pick one font for the timer digits and another for the interface.
+- Bundled Arabic fonts that work offline, all under free licenses.
+- Use any font installed on Windows, or add your own font file (TTF or OTF).
+- Timer digits always keep a fixed width, so the time never jitters while counting.
+- Live preview before applying, and an automatic fallback to the default font if a font lacks Arabic letters.
+
+**Streak**
+
+- The number of days in a row you reached your daily goal, or finished at least one focus session if you have no daily goal.
+- Rest days of your choice, such as Friday, that don't break the streak.
+- A weekly streak for a calmer pace: weeks in a row you reached your weekly goal.
+- Your longest streak, with a quiet notification when you beat it.
+- A map of recent months on the Goals page, each day shaded by how much you focused.
+- Built from your existing history, so your streak shows from the first day after the update.
+- No pressure: no guilt messages and no alerts when a streak ends.
 
 ### Download and install
 
