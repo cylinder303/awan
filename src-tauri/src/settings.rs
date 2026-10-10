@@ -10,6 +10,7 @@ use crate::sound;
 use crate::timer::TimerConfig;
 
 pub const SETTINGS_KEY: &str = "settings";
+pub const DEFAULT_SHORTCUT: &str = "Ctrl+Alt+Space";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default, rename_all = "camelCase")]
@@ -39,6 +40,15 @@ pub struct Settings {
     pub weekly_goal_minutes: u32,
     pub daily_goal_enabled: bool,
     pub daily_goal_minutes: u32,
+    /// What the window's close button does: "tray" (keep running) or "quit".
+    pub close_action: String,
+    /// Mirrors the Windows startup entry (changed only through its command).
+    pub launch_at_startup: bool,
+    /// Mini mode background opacity in percent, 30..=100.
+    pub mini_opacity: u32,
+    /// System-wide start/pause shortcut such as "Ctrl+Alt+Space"; empty = off.
+    /// Changed only through its command, which checks it can be registered.
+    pub global_shortcut: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -69,6 +79,10 @@ impl Default for Settings {
             weekly_goal_minutes: 20 * 60,
             daily_goal_enabled: false,
             daily_goal_minutes: 4 * 60,
+            close_action: "tray".to_string(),
+            launch_at_startup: false,
+            mini_opacity: 92,
+            global_shortcut: DEFAULT_SHORTCUT.to_string(),
         }
     }
 }
@@ -107,6 +121,15 @@ impl Settings {
         }
         if !matches!(self.week_start.as_str(), "saturday" | "sunday" | "monday") {
             self.week_start = d.week_start;
+        }
+        if !matches!(self.close_action.as_str(), "tray" | "quit") {
+            self.close_action = d.close_action;
+        }
+        self.mini_opacity = self.mini_opacity.clamp(30, 100);
+        if self.global_shortcut.len() > 40
+            || !self.global_shortcut.chars().all(|c| c.is_ascii_alphanumeric() || c == '+')
+        {
+            self.global_shortcut = d.global_shortcut;
         }
         let dc = CustomTheme::default();
         for (value, fallback) in [
@@ -186,6 +209,9 @@ mod tests {
             theme: "Bad Theme!".into(),
             language: "fr".into(),
             week_start: "friday".into(),
+            close_action: "minimize".into(),
+            mini_opacity: 5,
+            global_shortcut: "Ctrl+<script>".into(),
             custom_theme: CustomTheme { background: "red".into(), accent: "#ABCDEF".into(), text: "#12345".into() },
             ..Settings::default()
         }
@@ -195,6 +221,9 @@ mod tests {
         assert_eq!(s.theme, "auto");
         assert_eq!(s.language, "auto");
         assert_eq!(s.week_start, "saturday");
+        assert_eq!(s.close_action, "tray");
+        assert_eq!(s.mini_opacity, 30);
+        assert_eq!(s.global_shortcut, DEFAULT_SHORTCUT);
         assert_eq!(s.custom_theme.background, d.custom_theme.background);
         assert_eq!(s.custom_theme.accent, "#abcdef");
         assert_eq!(s.custom_theme.text, d.custom_theme.text);

@@ -23,6 +23,25 @@
         "decorations": false,
         "shadow": true,
         "visible": false
+      },
+      {
+        "label": "mini",
+        "title": "Awan",
+        "url": "mini.html",
+        "width": 200,
+        "height": 84,
+        "minWidth": 120,
+        "minHeight": 50,
+        "resizable": true,
+        "maximizable": false,
+        "minimizable": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false,
+        "focus": false
       }
     ],
     "security": {
@@ -31,7 +50,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "publisher": "Awan",
     "copyright": "MIT License",
     "category": "Productivity",
@@ -50,7 +71,10 @@
       },
       "nsis": {
         "installMode": "currentUser",
-        "languages": ["English", "Arabic"],
+        "languages": [
+          "English",
+          "Arabic"
+        ],
         "displayLanguageSelector": false,
         "installerIcon": "icons/icon.ico"
       }

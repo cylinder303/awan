@@ -1,0 +1,156 @@
+/* Mini timer: just the remaining time, always on top. */
+
+html,
+body {
+  background: transparent;
+}
+
+.mini {
+  --edge: 6px;
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 14px;
+  /* Only the background fades with the opacity setting; the digits stay crisp. */
+  background: color-mix(in srgb, var(--bg) var(--mini-alpha, 92%), transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border) 80%, transparent);
+  container-type: size;
+  cursor: default;
+}
+
+.mini__time {
+  /* Scales with the window, never below a readable size. */
+  font-size: clamp(16px, min(60cqh, 26cqw), 480px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+  transition: opacity var(--slow) var(--ease);
+}
+
+[data-status="paused"] .mini__time,
+[data-status="idle"] .mini__time {
+  opacity: 0.6;
+}
+
+/* The mode shows as a colour (and, for breaks, a hollow dot), never as text. */
+.mini__dot {
+  position: absolute;
+  top: max(7px, 9cqh);
+  inset-inline-start: max(8px, 6cqw);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  transition: background-color var(--slow) var(--ease);
+}
+
+[data-mode="short_break"] .mini__dot,
+[data-mode="long_break"] .mini__dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.mini__progress {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 3px;
+  background: color-mix(in srgb, var(--ring-track) 70%, transparent);
+}
+
+.mini__fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: background-color var(--slow) var(--ease);
+}
+
+/* Small buttons that appear only while the pointer is over the timer. */
+.mini__actions {
+  position: absolute;
+  inset-inline-end: max(6px, 4cqw);
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease);
+}
+
+.mini:hover .mini__actions,
+.mini:focus-within .mini__actions {
+  opacity: 1;
+}
+
+.mini__btn {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  color: var(--text-muted);
+  box-shadow: 0 0 0 1px var(--border);
+  transition: color var(--fast) var(--ease), background-color var(--fast) var(--ease);
+}
+
+.mini__btn:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.mini__btn svg {
+  width: 11px;
+  height: 11px;
+}
+
+/* Too short for two stacked buttons: put them side by side. */
+@container (max-height: 64px) {
+  .mini__actions {
+    flex-direction: row;
+  }
+}
+
+/* Resize handles along the edges. */
+.edge {
+  position: absolute;
+  z-index: 2;
+}
+
+.edge--n,
+.edge--s {
+  inset-inline: var(--edge);
+  height: var(--edge);
+  cursor: ns-resize;
+}
+
+.edge--e,
+.edge--w {
+  top: var(--edge);
+  bottom: var(--edge);
+  width: var(--edge);
+  cursor: ew-resize;
+}
+
+.edge--n { top: 0; }
+.edge--s { bottom: 0; }
+.edge--e { right: 0; }
+.edge--w { left: 0; }
+
+.edge--ne,
+.edge--nw,
+.edge--se,
+.edge--sw {
+  width: calc(var(--edge) * 2);
+  height: calc(var(--edge) * 2);
+}
+
+.edge--ne { top: 0; right: 0; cursor: nesw-resize; }
+.edge--sw { bottom: 0; left: 0; cursor: nesw-resize; }
+.edge--nw { top: 0; left: 0; cursor: nwse-resize; }
+.edge--se { bottom: 0; right: 0; cursor: nwse-resize; }

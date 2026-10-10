@@ -39,6 +39,12 @@ export const settings = {
     }
   },
 
+  /** Take settings returned by a backend command (e.g. the shortcut editor). */
+  adopt(next) {
+    latest++;
+    publish(next);
+  },
+
   async reset() {
     latest++;
     publish(await settingsApi.reset());

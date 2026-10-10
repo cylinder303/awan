@@ -21,6 +21,8 @@ export const settingsApi = {
   get: () => invoke("get_settings"),
   update: (settings) => invoke("update_settings", { settings }),
   reset: () => invoke("reset_settings"),
+  setGlobalShortcut: (shortcut) => invoke("set_global_shortcut", { shortcut }),
+  setLaunchAtStartup: (enabled) => invoke("set_launch_at_startup", { enabled }),
   onChanged: (fn) => listen("settings://changed", fn),
 };
 
@@ -44,6 +46,7 @@ export const sounds = {
 
 export const app = {
   ready: () => invoke("app_ready"),
+  toggleView: () => invoke("toggle_view"),
   setLanguage: (lang) => invoke("set_language", { lang }),
 };
 
@@ -54,5 +57,7 @@ export const appWindow = {
   toggleMaximize: () => current().toggleMaximize(),
   isMaximized: () => current().isMaximized(),
   close: () => current().close(),
+  startDragging: () => current().startDragging(),
+  startResizeDragging: (direction) => current().startResizeDragging(direction),
   onResized: (fn) => current().onResized(fn),
 };

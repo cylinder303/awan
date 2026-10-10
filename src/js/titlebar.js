@@ -1,7 +1,7 @@
 // Custom title bar: window buttons drawn by the app.
 // Dragging and double-click-to-maximize come from data-tauri-drag-region.
 
-import { appWindow } from "./api.js";
+import { app, appWindow } from "./api.js";
 import { settings } from "./settings.js";
 import { icons } from "./icons.js";
 import { t, onLanguageChange } from "./i18n.js";
@@ -35,6 +35,7 @@ export function initTitlebar() {
   document.getElementById("tb-min").addEventListener("click", () => appWindow.minimize());
   document.getElementById("tb-close").addEventListener("click", () => appWindow.close());
   max.addEventListener("click", () => appWindow.toggleMaximize());
+  document.getElementById("tb-mini").addEventListener("click", () => app.toggleView());
   // The backend applies "always on top" when the setting is saved.
   pin.addEventListener("click", () => settings.update({ alwaysOnTop: !settings.get().alwaysOnTop }));
 

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Awan</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="styles/fonts.css" />
+    <link rel="stylesheet" href="styles/themes.css" />
+    <link rel="stylesheet" href="styles/base.css" />
+    <link rel="stylesheet" href="styles/mini.css" />
+    <script type="module" src="js/mini.js"></script>
+  </head>
+  <body data-mode="focus">
+    <div class="mini" id="mini">
+      <span class="mini__dot" aria-hidden="true"></span>
+      <div class="mini__time num" role="timer"></div>
+      <div class="mini__progress" aria-hidden="true"><span class="mini__fill"></span></div>
+      <div class="mini__actions">
+        <button class="mini__btn" data-action="toggle"></button>
+        <button class="mini__btn" data-action="expand" data-icon="expand"></button>
+      </div>
+      <!-- Edges and corners resize; everything else drags. -->
+      <div class="edge edge--n" data-dir="North"></div>
+      <div class="edge edge--s" data-dir="South"></div>
+      <div class="edge edge--e" data-dir="East"></div>
+      <div class="edge edge--w" data-dir="West"></div>
+      <div class="edge edge--ne" data-dir="NorthEast"></div>
+      <div class="edge edge--nw" data-dir="NorthWest"></div>
+      <div class="edge edge--se" data-dir="SouthEast"></div>
+      <div class="edge edge--sw" data-dir="SouthWest"></div>
+    </div>
+  </body>
+</html>

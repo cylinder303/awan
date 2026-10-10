@@ -8,20 +8,27 @@ mod backup;
 mod clock;
 mod commands;
 mod db;
+mod display;
 mod goals;
 mod i18n;
 mod power;
 mod settings;
+mod shortcuts;
 mod sound;
 mod timer;
+mod tray;
 mod window_ext;
 
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard};
 use std::time::Duration;
 
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, CloseRequestApi, Emitter, Manager, Window, WindowEvent};
+use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_notification::NotificationExt;
+
+use display::{Geometry, View};
 
 use db::Db;
 use i18n::Lang;
@@ -29,6 +36,9 @@ use settings::{Settings, SETTINGS_KEY};
 use timer::{Engine, Event, Mode, Now, SessionRecord, Snapshot, Status, TimerView};
 
 const SNAPSHOT_KEY: &str = "active_session";
+const TRAY_HINT_KEY: &str = "tray_hint_shown";
+/// Passed by the Windows startup entry: start quietly in the tray.
+const AUTOSTART_ARG: &str = "--autostart";
 pub const STATE_EVENT: &str = "timer://state";
 pub const FINISHED_EVENT: &str = "timer://finished";
 pub const SETTINGS_EVENT: &str = "settings://changed";
@@ -42,6 +52,13 @@ pub struct AppState {
     /// An interrupted session was restored and the user has not yet chosen
     /// between resuming it and starting fresh.
     pending_resume: AtomicBool,
+    /// Full window or mini timer.
+    view: Mutex<View>,
+    geometry: Mutex<HashMap<String, Geometry>>,
+    geometry_dirty: AtomicBool,
+    tray: Mutex<Option<tray::Tray>>,
+    /// Launched at Windows startup: stay in the tray until asked.
+    start_hidden: bool,
 }
 
 /// Lock a mutex, recovering the data if a previous holder panicked.
@@ -53,12 +70,17 @@ pub fn run() {
     tauri::Builder::default()
         // Must be registered first: a second launch focuses the running app.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            if let Some(w) = app.get_webview_window("main") {
-                window_ext::reveal(&w);
-            }
+            display::show(app, display::current(app));
         }))
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(shortcuts::plugin())
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec![AUTOSTART_ARG])))
+        .on_window_event(|window, event| match event {
+            WindowEvent::CloseRequested { api, .. } => on_close_requested(window, api),
+            WindowEvent::Moved(_) | WindowEvent::Resized(_) => display::track(window),
+            _ => {}
+        })
         .setup(|app| {
             setup(app)?;
             Ok(())
@@ -73,6 +95,9 @@ pub fn run() {
             commands::resolve_resume,
             commands::set_language,
             commands::app_ready,
+            commands::toggle_view,
+            commands::set_global_shortcut,
+            commands::set_launch_at_startup,
             commands::get_settings,
             commands::update_settings,
             commands::reset_settings,
@@ -93,6 +118,7 @@ pub fn run() {
         .run(|app, event| {
             if let tauri::RunEvent::Exit = event {
                 save_snapshot(app);
+                display::flush(app);
             }
         });
 }
@@ -115,26 +141,54 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     remember_week_goal(&db, &settings);
+    let view = display::load_view(&db);
     app.manage(AppState {
         engine: Mutex::new(engine),
         db: Mutex::new(db),
         settings: Mutex::new(settings.clone()),
         lang: Mutex::new(Lang::En),
         pending_resume: AtomicBool::new(pending),
+        view: Mutex::new(view),
+        geometry: Mutex::new(HashMap::new()),
+        geometry_dirty: AtomicBool::new(false),
+        tray: Mutex::new(None),
+        start_hidden: std::env::args().any(|a| a == AUTOSTART_ARG),
     });
+    let handle = app.handle().clone();
 
-    if let Some(window) = app.get_webview_window("main") {
+    for label in [display::MAIN, display::MINI] {
+        if let Some(window) = app.get_webview_window(label) {
+            display::place(&handle, &window);
+        }
+    }
+    if let Some(window) = app.get_webview_window(display::MAIN) {
         window_ext::apply_corner_preference(&window);
         let _ = window.set_always_on_top(settings.always_on_top);
-        // The UI shows the window once it has painted (no white flash). If it
-        // never reports in, show it anyway.
-        std::thread::spawn(move || {
-            std::thread::sleep(Duration::from_secs(3));
-            if !window.is_visible().unwrap_or(true) {
-                window_ext::reveal(&window);
-            }
-        });
     }
+
+    // Without a tray (rare, e.g. no notification area) the app still works.
+    *lock(&handle.state::<AppState>().tray) = tray::create(&handle).ok();
+    // If another program owns the shortcut, the app still starts; Settings
+    // lets the user pick a different one.
+    let _ = shortcuts::register(&handle, &settings.global_shortcut);
+    // The startup entry can be changed outside the app; trust the system.
+    let launches = handle.autolaunch().is_enabled().unwrap_or(false);
+    if launches != settings.launch_at_startup {
+        commit_settings(&handle, Settings { launch_at_startup: launches, ..settings });
+    }
+
+    // Each window appears once it has painted (no white flash). If the UI
+    // never reports in, show the current view anyway.
+    let fallback = handle.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_secs(3));
+        let state = fallback.state::<AppState>();
+        let label = display::current(&fallback).label();
+        let shown = fallback.get_webview_window(label).and_then(|w| w.is_visible().ok()).unwrap_or(true);
+        if !state.start_hidden && !shown {
+            display::show(&fallback, display::current(&fallback));
+        }
+    });
 
     power::watch(app.handle().clone());
     spawn_ticker(app.handle().clone());
@@ -155,6 +209,7 @@ where
     };
     handle_events(app, events);
     let _ = app.emit(STATE_EVENT, &view);
+    tray::update(app, &view);
     save_snapshot(app);
     view
 }
@@ -194,8 +249,30 @@ fn handle_events(app: &AppHandle, events: Vec<Event>) {
     }
 }
 
-/// Validate, store and apply new settings, then tell every window.
+/// Save settings changed in the UI. The global shortcut and the startup
+/// entry are tied to the system and only change through their own commands.
 pub(crate) fn save_settings(app: &AppHandle, next: Settings) -> Settings {
+    let current = lock(&app.state::<AppState>().settings).clone();
+    commit_settings(
+        app,
+        Settings {
+            global_shortcut: current.global_shortcut,
+            launch_at_startup: current.launch_at_startup,
+            ..next
+        },
+    )
+}
+
+/// Back to defaults, including the shortcut and the startup entry.
+pub(crate) fn reset_settings(app: &AppHandle) -> Settings {
+    let defaults = Settings::default();
+    let _ = shortcuts::register(app, &defaults.global_shortcut);
+    let _ = app.autolaunch().disable();
+    commit_settings(app, defaults)
+}
+
+/// Validate, store and apply settings, then tell every window.
+pub(crate) fn commit_settings(app: &AppHandle, next: Settings) -> Settings {
     let next = next.sanitized();
     let state = app.state::<AppState>();
     {
@@ -208,11 +285,39 @@ pub(crate) fn save_settings(app: &AppHandle, next: Settings) -> Settings {
         engine.set_config(next.timer_config());
         Vec::new()
     });
-    if let Some(window) = app.get_webview_window("main") {
+    if let Some(window) = app.get_webview_window(display::MAIN) {
         let _ = window.set_always_on_top(next.always_on_top);
     }
     let _ = app.emit(SETTINGS_EVENT, &next);
     next
+}
+
+/// Close button: the main window hides to the tray or quits (per settings);
+/// closing the mini timer returns to the full window.
+fn on_close_requested(window: &Window, api: &CloseRequestApi) {
+    let app = window.app_handle();
+    api.prevent_close();
+    if window.label() == display::MINI {
+        display::show(app, View::Full);
+        return;
+    }
+    let state = app.state::<AppState>();
+    let to_tray = lock(&state.settings).close_action == "tray";
+    if !to_tray {
+        app.exit(0);
+        return;
+    }
+    let _ = window.hide();
+    let first_time = {
+        let db = lock(&state.db);
+        let shown = db.get::<bool>(TRAY_HINT_KEY).ok().flatten().unwrap_or(false);
+        let _ = db.set(TRAY_HINT_KEY, &true);
+        !shown
+    };
+    if first_time {
+        let (title, body) = i18n::still_running(*lock(&state.lang));
+        let _ = app.notification().builder().title(title).body(body).show();
+    }
 }
 
 /// Store the weekly goal for the current week, so past weeks keep the goal
@@ -285,7 +390,9 @@ fn spawn_ticker(app: AppHandle) {
             if changed || second != last_second {
                 last_second = second;
                 let _ = app.emit(STATE_EVENT, &view);
+                tray::update(&app, &view);
             }
+            display::flush(&app);
 
             let running = view.status == Status::Running;
             // Checkpoint so a crash or power loss loses at most a few seconds.

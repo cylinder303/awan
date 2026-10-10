@@ -1,6 +1,8 @@
 // Settings page: timer, sound, appearance and language.
 
-import { history, sounds } from "../api.js";
+import { history, settingsApi, sounds } from "../api.js";
+import { LOCAL_SHORTCUTS } from "../shortcuts.js";
+import { comboFromEvent, formatCombo } from "../keys.js";
 import { settings } from "../settings.js";
 import { getLanguage, onLanguageChange, t } from "../i18n.js";
 import { icons } from "../icons.js";
@@ -38,6 +40,15 @@ export function mount(root) {
         row(t("settings.mode_colors"), switchControl("modeColors", t("settings.mode_colors")), t("settings.mode_colors_hint")),
       ]),
       section(t("settings.language"), [languageControl()]),
+      section(t("window.title"), [
+        closeActionControl(),
+        row(t("window.launch_at_startup"), startupSwitch(), t("window.launch_hint")),
+        row(t("window.mini_opacity"), opacityControl(), t("window.mini_opacity_hint")),
+      ]),
+      section(t("shortcuts.title"), [
+        ...LOCAL_SHORTCUTS.map((sc) => row(t(sc.action), keysEl(sc.key))),
+        stackedRow(t("shortcuts.global"), globalShortcutEditor(), t("shortcuts.global_hint")),
+      ]),
       section(t("data.title"), [
         row(t("data.backup"), actionButton(icons.download, t("data.backup_action"), backup), t("data.backup_hint")),
         row(t("data.restore"), actionButton(icons.upload, t("data.restore_action"), restore), t("data.restore_hint")),
@@ -189,6 +200,136 @@ export function mount(root) {
     return c.el;
   }
 
+  function closeActionControl() {
+    const c = segmented({
+      label: t("window.close_action"),
+      options: [
+        { value: "tray", label: t("window.close_tray") },
+        { value: "quit", label: t("window.close_quit") },
+      ],
+      onChange: (closeAction) => settings.update({ closeAction }),
+    });
+    controls.push((s) => c.set(s.closeAction));
+    const r = el("div", "row row--stacked");
+    const l = el("span", "row__label");
+    l.textContent = t("window.close_action");
+    r.append(l, c.el);
+    return r;
+  }
+
+  function startupSwitch() {
+    const c = toggle({
+      label: t("window.launch_at_startup"),
+      onChange: async (enabled) => {
+        try {
+          settings.adopt(await settingsApi.setLaunchAtStartup(enabled));
+        } catch {
+          toast(t("window.launch_failed"), { error: true });
+        }
+      },
+    });
+    controls.push((s) => c.set(s.launchAtStartup));
+    return c.el;
+  }
+
+  function opacityControl() {
+    const wrap = el("div", "volume");
+    const range = el("input", "range");
+    range.type = "range";
+    range.min = "30";
+    range.max = "100";
+    range.step = "5";
+    range.setAttribute("aria-label", t("window.mini_opacity"));
+    const value = el("span", "volume__value num");
+    range.addEventListener("input", () => {
+      value.textContent = `${range.value}%`;
+      settings.update({ miniOpacity: Number(range.value) }); // live preview in the mini window
+    });
+    wrap.append(range, value);
+    controls.push((s) => {
+      if (document.activeElement !== range) range.value = String(s.miniOpacity);
+      value.textContent = `${s.miniOpacity}%`;
+    });
+    return wrap;
+  }
+
+  function keysEl(combo) {
+    const span = el("span", "keys");
+    span.dir = "ltr";
+    for (const part of formatCombo(combo)) {
+      const k = el("kbd", "kbd");
+      k.textContent = part;
+      span.append(k);
+    }
+    return span;
+  }
+
+  function globalShortcutEditor() {
+    const wrap = el("div", "shortcut-editor");
+    const shown = el("span", "shortcut-editor__keys");
+    const change = el("button", "btn btn--quiet btn--sm");
+    change.type = "button";
+    const clear = el("button", "icon-btn icon-btn--sm");
+    clear.type = "button";
+    clear.innerHTML = icons.close;
+    clear.title = t("shortcuts.turn_off");
+    clear.setAttribute("aria-label", clear.title);
+    let recording = false;
+
+    function show(s) {
+      shown.innerHTML = "";
+      if (recording) return;
+      if (s.globalShortcut) shown.append(keysEl(s.globalShortcut));
+      else shown.textContent = t("shortcuts.off");
+      change.textContent = t("shortcuts.change");
+      clear.hidden = !s.globalShortcut;
+    }
+
+    async function save(combo) {
+      try {
+        settings.adopt(await settingsApi.setGlobalShortcut(combo));
+        if (combo) toast(t("shortcuts.saved"));
+      } catch (error) {
+        const known = ["taken", "needs_modifier", "invalid"];
+        toast(t(`shortcuts.error_${known.includes(error) ? error : "invalid"}`), { error: true });
+      }
+    }
+
+    function stop() {
+      recording = false;
+      wrap.classList.remove("is-recording");
+      document.removeEventListener("keydown", onKey, true);
+      delete document.body.dataset.modal;
+      show(settings.get());
+    }
+
+    function onKey(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === "Escape") return stop();
+      const combo = comboFromEvent(e);
+      if (!combo) return; // only modifiers so far
+      stop();
+      save(combo);
+    }
+
+    change.addEventListener("click", () => {
+      if (recording) return stop();
+      recording = true;
+      wrap.classList.add("is-recording");
+      shown.textContent = "";
+      change.textContent = t("shortcuts.press");
+      // Suspend the in-app shortcuts while recording.
+      document.body.dataset.modal = "recording";
+      document.addEventListener("keydown", onKey, true);
+    });
+    clear.addEventListener("click", () => save(""));
+
+    wrap.append(shown, change, clear);
+    controls.push(show);
+    return wrap;
+  }
+
   function actionButton(icon, label, onClick) {
     const btn = el("button", "btn btn--quiet btn--sm");
     btn.type = "button";
@@ -274,6 +415,13 @@ function section(title, children, hint) {
     s.append(p);
   }
   return s;
+}
+
+/** A row whose control sits below the label (for wide controls). */
+function stackedRow(label, control, hint) {
+  const r = row(label, control, hint);
+  r.classList.add("row--stacked");
+  return r;
 }
 
 function row(label, control, hint) {

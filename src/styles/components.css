@@ -61,7 +61,8 @@
   background: var(--border);
 }
 
-.tb-btn--pin svg {
+.tb-btn--pin svg,
+.tb-btn--mini svg {
   width: 13px;
   height: 13px;
 }
@@ -1277,4 +1278,50 @@
 
 .week__status.is-reached {
   color: var(--accent);
+}
+
+/* ------------------------------------------------------------- shortcuts */
+
+.keys {
+  display: inline-flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.kbd {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  box-shadow: inset 0 -1px 0 var(--border);
+  font-family: inherit;
+  font-size: 11.5px;
+  text-align: center;
+}
+
+.shortcut-editor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.row--stacked .shortcut-editor {
+  margin-top: 6px;
+}
+
+.shortcut-editor .icon-btn svg {
+  width: 10px;
+  height: 10px;
+}
+
+.shortcut-editor__keys {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.shortcut-editor.is-recording .btn {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  color: var(--text);
+  animation: ring-pulse 1.2s var(--ease) infinite;
 }

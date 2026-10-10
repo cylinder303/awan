@@ -62,6 +62,79 @@ pub fn goal_reached(lang: Lang, weekly: bool, goal_minutes: u32) -> (&'static st
     }
 }
 
+
+pub fn mode_name(lang: Lang, mode: Mode) -> &'static str {
+    match (lang, mode) {
+        (Lang::Ar, Mode::Focus) => "تركيز",
+        (Lang::Ar, Mode::ShortBreak) => "استراحة قصيرة",
+        (Lang::Ar, Mode::LongBreak) => "استراحة طويلة",
+        (Lang::En, Mode::Focus) => "Focus",
+        (Lang::En, Mode::ShortBreak) => "Short break",
+        (Lang::En, Mode::LongBreak) => "Long break",
+    }
+}
+
+/// "Awan · Focus · 12:34" (adds "paused" when paused).
+pub fn tray_tooltip(lang: Lang, view: &crate::timer::TimerView) -> String {
+    let secs = view.remaining_ms.div_ceil(1000);
+    let time = format!("{:02}:{:02}", secs / 60, secs % 60);
+    let name = match lang {
+        Lang::Ar => "أوان",
+        Lang::En => "Awan",
+    };
+    let paused = match (lang, view.status) {
+        (Lang::Ar, crate::timer::Status::Paused) => " (متوقف مؤقتًا)",
+        (Lang::En, crate::timer::Status::Paused) => " (paused)",
+        _ => "",
+    };
+    // Isolate the time so it reads left-to-right inside Arabic text.
+    format!("{name} · {} · \u{2066}{time}\u{2069}{paused}", mode_name(lang, view.mode))
+}
+
+pub struct TrayLabels {
+    pub start: &'static str,
+    pub pause: &'static str,
+    pub resume: &'static str,
+    pub skip: &'static str,
+    pub show: &'static str,
+    pub mini: &'static str,
+    pub full: &'static str,
+    pub quit: &'static str,
+}
+
+pub fn tray_labels(lang: Lang) -> TrayLabels {
+    match lang {
+        Lang::Ar => TrayLabels {
+            start: "ابدأ",
+            pause: "إيقاف مؤقت",
+            resume: "استئناف",
+            skip: "تخطٍّ",
+            show: "إظهار النافذة",
+            mini: "الوضع المصغّر",
+            full: "الوضع الكامل",
+            quit: "إنهاء",
+        },
+        Lang::En => TrayLabels {
+            start: "Start",
+            pause: "Pause",
+            resume: "Resume",
+            skip: "Skip",
+            show: "Show window",
+            mini: "Mini mode",
+            full: "Full mode",
+            quit: "Quit",
+        },
+    }
+}
+
+/// Shown once, the first time closing the window hides it to the tray.
+pub fn still_running(lang: Lang) -> (&'static str, &'static str) {
+    match lang {
+        Lang::Ar => ("أوان ما زال يعمل", "المؤقت مستمر في علبة النظام. يمكنك تغيير ذلك من الإعدادات."),
+        Lang::En => ("Awan is still running", "The timer keeps going in the system tray. You can change this in Settings."),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

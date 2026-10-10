@@ -10,7 +10,9 @@ use tauri::{AppHandle, Manager, State, WebviewWindow};
 use crate::i18n::Lang;
 use crate::settings::Settings;
 use crate::timer::{Mode, TimerView};
-use crate::{apply, clock, lock, save_settings, sound, window_ext, AppState};
+use crate::display;
+use crate::{apply, clock, commit_settings, lock, save_settings, shortcuts, sound, tray, window_ext, AppState};
+use tauri_plugin_autostart::ManagerExt;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -72,14 +74,46 @@ pub fn resolve_resume(app: AppHandle, resume: bool) -> TimerView {
 }
 
 #[tauri::command]
-pub fn set_language(state: State<'_, AppState>, lang: String) {
-    *lock(&state.lang) = Lang::parse(&lang);
+pub fn set_language(app: AppHandle, lang: String) {
+    *lock(&app.state::<AppState>().lang) = Lang::parse(&lang);
+    tray::refresh(&app);
 }
 
-/// The UI has painted its first frame: show the (initially hidden) window.
+/// A window has painted its first frame. Show it if it belongs to the
+/// current view (and the app was not started quietly at login).
 #[tauri::command]
-pub fn app_ready(window: WebviewWindow) {
-    window_ext::reveal(&window);
+pub fn app_ready(app: AppHandle, window: WebviewWindow) {
+    let state = app.state::<AppState>();
+    if !state.start_hidden && window.label() == display::current(&app).label() {
+        window_ext::reveal(&window);
+    }
+}
+
+/// Switch between the full window and the mini timer.
+#[tauri::command]
+pub fn toggle_view(app: AppHandle) {
+    display::toggle(&app);
+}
+
+/// Change the system-wide start/pause shortcut ("" turns it off).
+/// On failure the previous shortcut stays active.
+#[tauri::command]
+pub fn set_global_shortcut(app: AppHandle, shortcut: String) -> Result<Settings, String> {
+    let current = lock(&app.state::<AppState>().settings).clone();
+    if let Err(e) = shortcuts::register(&app, &shortcut) {
+        let _ = shortcuts::register(&app, &current.global_shortcut);
+        return Err(e);
+    }
+    Ok(commit_settings(&app, Settings { global_shortcut: shortcut, ..current }))
+}
+
+/// Add or remove the Windows startup entry.
+#[tauri::command]
+pub fn set_launch_at_startup(app: AppHandle, enabled: bool) -> Result<Settings, String> {
+    let manager = app.autolaunch();
+    if enabled { manager.enable() } else { manager.disable() }.map_err(|e| e.to_string())?;
+    let current = lock(&app.state::<AppState>().settings).clone();
+    Ok(commit_settings(&app, Settings { launch_at_startup: enabled, ..current }))
 }
 
 #[tauri::command]
@@ -94,7 +128,7 @@ pub fn update_settings(app: AppHandle, settings: Settings) -> Settings {
 
 #[tauri::command]
 pub fn reset_settings(app: AppHandle) -> Settings {
-    save_settings(&app, Settings::default())
+    crate::reset_settings(&app)
 }
 
 #[tauri::command]
