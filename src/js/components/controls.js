@@ -3,13 +3,22 @@
 
 import { icons } from "../icons.js";
 
+/** Read a number typed with Latin or Arabic-Indic digits ("٤٫٥" → 4.5). */
+export function parseNumber(text) {
+  const latin = String(text)
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[٫,]/g, ".")
+    .replace(/[^\d.]/g, "");
+  return parseFloat(latin);
+}
+
 /** Number field with − / + buttons. */
-export function stepper({ min, max, unit, label, onChange }) {
+export function stepper({ min, max, step = 1, unit, label, onChange }) {
   const el = document.createElement("div");
   el.className = "stepper";
   el.innerHTML = `
     <button type="button" class="stepper__btn" data-step="-1" tabindex="-1" aria-hidden="true">${icons.minus}</button>
-    <input class="stepper__input num" type="text" inputmode="numeric" maxlength="3" />
+    <input class="stepper__input num" type="text" inputmode="decimal" maxlength="4" />
     <button type="button" class="stepper__btn" data-step="1" tabindex="-1" aria-hidden="true">${icons.plus}</button>
     <span class="stepper__unit"></span>`;
   const input = el.querySelector("input");
@@ -18,9 +27,10 @@ export function stepper({ min, max, unit, label, onChange }) {
   let value = min;
 
   const clamp = (v) => Math.min(max, Math.max(min, v));
+  const show = (v) => String(Number.isInteger(v) ? v : v.toFixed(1));
   function commit(v) {
-    const next = clamp(Number.isFinite(v) ? Math.round(v) : value);
-    input.value = String(next);
+    const next = clamp(Number.isFinite(v) ? Math.round(v / step) * step : value);
+    input.value = show(next);
     if (next !== value) {
       value = next;
       onChange(next);
@@ -28,13 +38,13 @@ export function stepper({ min, max, unit, label, onChange }) {
   }
 
   el.querySelectorAll("[data-step]").forEach((btn) =>
-    btn.addEventListener("click", () => commit(value + Number(btn.dataset.step))),
+    btn.addEventListener("click", () => commit(value + Number(btn.dataset.step) * step)),
   );
-  input.addEventListener("change", () => commit(parseInt(input.value.replace(/[^\d]/g, ""), 10)));
+  input.addEventListener("change", () => commit(parseNumber(input.value)));
   input.addEventListener("keydown", (e) => {
     if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       e.preventDefault();
-      commit(value + (e.key === "ArrowUp" ? 1 : -1));
+      commit(value + (e.key === "ArrowUp" ? step : -step));
     } else if (e.key === "Enter") {
       input.blur();
     }
@@ -44,7 +54,7 @@ export function stepper({ min, max, unit, label, onChange }) {
     el,
     set(v) {
       value = v;
-      if (document.activeElement !== input) input.value = String(v);
+      if (document.activeElement !== input) input.value = show(v);
     },
   };
 }

@@ -2,9 +2,11 @@
 //! (`%APPDATA%\io.github.cylinder303.awan\awan.db`), outside the install
 //! directory, so updates and reinstalls never touch it.
 
+mod goals;
 mod migrations;
 mod sessions;
 
+pub use goals::WeekGoal;
 pub use sessions::Session;
 
 use rusqlite::{params, Connection, OptionalExtension};

@@ -8,6 +8,7 @@ mod backup;
 mod clock;
 mod commands;
 mod db;
+mod goals;
 mod i18n;
 mod power;
 mod settings;
@@ -25,7 +26,7 @@ use tauri_plugin_notification::NotificationExt;
 use db::Db;
 use i18n::Lang;
 use settings::{Settings, SETTINGS_KEY};
-use timer::{Engine, Event, Now, Snapshot, Status, TimerView};
+use timer::{Engine, Event, Mode, Now, SessionRecord, Snapshot, Status, TimerView};
 
 const SNAPSHOT_KEY: &str = "active_session";
 pub const STATE_EVENT: &str = "timer://state";
@@ -84,6 +85,8 @@ pub fn run() {
             commands::history::export_csv,
             commands::history::export_backup,
             commands::history::import_backup,
+            commands::history::week_goals,
+            commands::history::first_session_at,
         ])
         .build(tauri::generate_context!())
         .expect("failed to build Awan")
@@ -111,6 +114,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    remember_week_goal(&db, &settings);
     app.manage(AppState {
         engine: Mutex::new(engine),
         db: Mutex::new(db),
@@ -156,10 +160,15 @@ where
 }
 
 fn handle_events(app: &AppHandle, events: Vec<Event>) {
+    // Goal notifications go out after the "session finished" one.
+    let mut focus_ended = Vec::new();
     for event in events {
         match event {
             Event::SessionEnded(record) => {
                 let _ = lock(&app.state::<AppState>().db).insert_session(&record);
+                if record.mode == Mode::Focus {
+                    focus_ended.push(record);
+                }
                 let _ = app.emit(HISTORY_EVENT, ());
             }
             Event::Finished { ended, next, auto_started } => {
@@ -180,13 +189,20 @@ fn handle_events(app: &AppHandle, events: Vec<Event>) {
             Event::SleepPaused => {}
         }
     }
+    for record in focus_ended {
+        check_goals(app, &record);
+    }
 }
 
 /// Validate, store and apply new settings, then tell every window.
 pub(crate) fn save_settings(app: &AppHandle, next: Settings) -> Settings {
     let next = next.sanitized();
     let state = app.state::<AppState>();
-    let _ = lock(&state.db).set(SETTINGS_KEY, &next);
+    {
+        let db = lock(&state.db);
+        let _ = db.set(SETTINGS_KEY, &next);
+        remember_week_goal(&db, &next);
+    }
     *lock(&state.settings) = next.clone();
     apply(app, |engine, _| {
         engine.set_config(next.timer_config());
@@ -197,6 +213,45 @@ pub(crate) fn save_settings(app: &AppHandle, next: Settings) -> Settings {
     }
     let _ = app.emit(SETTINGS_EVENT, &next);
     next
+}
+
+/// Store the weekly goal for the current week, so past weeks keep the goal
+/// they were measured against when it is changed later.
+fn remember_week_goal(db: &Db, settings: &Settings) {
+    let p = goals::periods(clock::wall_ms(), &settings.week_start);
+    let _ = db.set_week_goal(&p.week_key, settings.weekly_goal_minutes);
+}
+
+/// Notify when a just-recorded focus session completes today's or this week's goal.
+fn check_goals(app: &AppHandle, record: &SessionRecord) {
+    let state = app.state::<AppState>();
+    let settings = lock(&state.settings).clone();
+    let lang = *lock(&state.lang);
+    let p = goals::periods(record.ended_at, &settings.week_start);
+    let totals = {
+        let db = lock(&state.db);
+        remember_week_goal(&db, &settings);
+        db.focus_totals(&[p.today, p.week]).unwrap_or_default()
+    };
+    let [today, week] = totals[..] else { return };
+    // Sessions count toward the day and week they started in.
+    let added = |(from, to): (i64, i64)| {
+        if (from..to).contains(&record.started_at) { record.duration_ms } else { 0 }
+    };
+    let mut reached = Vec::new();
+    if settings.daily_goal_enabled {
+        let goal = settings.daily_goal_minutes as u64 * 60_000;
+        if goals::crossed(today.saturating_sub(added(p.today)), today, goal) {
+            reached.push(i18n::goal_reached(lang, false, settings.daily_goal_minutes));
+        }
+    }
+    let goal = settings.weekly_goal_minutes as u64 * 60_000;
+    if goals::crossed(week.saturating_sub(added(p.week)), week, goal) {
+        reached.push(i18n::goal_reached(lang, true, settings.weekly_goal_minutes));
+    }
+    for (title, body) in reached {
+        let _ = app.notification().builder().title(title).body(body).show();
+    }
 }
 
 fn save_snapshot(app: &AppHandle) {

@@ -4,12 +4,12 @@
 import * as timerPage from "./pages/timer.js";
 import * as settingsPage from "./pages/settings.js";
 import * as historyPage from "./pages/history.js";
-import { create as soon } from "./pages/soon.js";
+import * as goalsPage from "./pages/goals.js";
 
 const pages = {
   timer: timerPage.mount,
   history: historyPage.mount,
-  goals: soon("goals"),
+  goals: goalsPage.mount,
   settings: settingsPage.mount,
 };
 

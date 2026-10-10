@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::db::Session;
+use crate::db::{Session, WeekGoal};
 use crate::settings::Settings;
 
 pub const APP_ID: &str = "awan";
@@ -18,6 +18,8 @@ pub struct Backup {
     pub settings: Settings,
     #[serde(default)]
     pub sessions: Vec<Session>,
+    #[serde(default)]
+    pub week_goals: Vec<WeekGoal>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -31,7 +33,7 @@ pub struct ImportSummary {
 
 impl Backup {
     pub fn new(settings: Settings, sessions: Vec<Session>, exported_at: i64) -> Self {
-        Self { app: APP_ID.into(), format: FORMAT, exported_at, settings, sessions }
+        Self { app: APP_ID.into(), format: FORMAT, exported_at, settings, sessions, week_goals: Vec::new() }
     }
 
     pub fn to_json(&self) -> Result<String, String> {

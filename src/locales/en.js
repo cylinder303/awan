@@ -36,8 +36,6 @@ export default {
   "switch.confirm": "Change",
   "common.cancel": "Cancel",
 
-  "soon.title": "Coming soon",
-  "soon.body": "This page is built in a later stage.",
 
   "unit.min": "min",
   "unit.sessions": "sessions",
@@ -123,4 +121,23 @@ export default {
   "data.error_newer_backup": "This backup is from a newer version of Awan. Update the app and try again.",
   "data.error_unreadable": "The file couldn't be read.",
   "data.write_failed": "The file couldn't be saved. Try another location.",
+
+  "unit.hours": "hours",
+
+  "goals.this_week": "This week",
+  "goals.of": "of {goal}",
+  "goals.left": "{time} to go",
+  "goals.reached": "Goal reached",
+  "goals.weekly_goal": "Weekly goal",
+  "goals.daily_goal": "Daily goal",
+  "goals.daily_hint": "Optional, alongside the weekly goal.",
+  "goals.daily_goal_hours": "Today's goal",
+  "goals.today": "Today's progress",
+  "goals.today_progress": "Today: {done} of {goal}",
+  "goals.week_starts": "Week starts on",
+  "goals.previous_weeks": "Previous weeks",
+  "goals.achieved": "Achieved",
+  "goals.missed": "Not reached",
+  "goals.empty_title": "No focus time yet",
+  "goals.empty_body": "Set your goal, then start a focus session. Your progress will show here; breaks don't count.",
 };

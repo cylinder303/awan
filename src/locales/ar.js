@@ -36,8 +36,6 @@ export default {
   "switch.confirm": "تغيير",
   "common.cancel": "إلغاء",
 
-  "soon.title": "قريبًا",
-  "soon.body": "هذه الصفحة تُبنى في مرحلة لاحقة.",
 
   "unit.min": "دقيقة",
   "unit.sessions": "جلسات",
@@ -123,4 +121,23 @@ export default {
   "data.error_newer_backup": "هذه النسخة من إصدار أحدث من أوان. حدّث التطبيق ثم أعد المحاولة.",
   "data.error_unreadable": "تعذّرت قراءة الملف.",
   "data.write_failed": "تعذّر حفظ الملف. جرّب مكانًا آخر.",
+
+  "unit.hours": "ساعة",
+
+  "goals.this_week": "هذا الأسبوع",
+  "goals.of": "من {goal}",
+  "goals.left": "متبقٍ {time}",
+  "goals.reached": "تحقّق الهدف",
+  "goals.weekly_goal": "الهدف الأسبوعي",
+  "goals.daily_goal": "هدف يومي",
+  "goals.daily_hint": "اختياري، إلى جانب الهدف الأسبوعي.",
+  "goals.daily_goal_hours": "هدف اليوم",
+  "goals.today": "تقدّم اليوم",
+  "goals.today_progress": "اليوم: {done} من {goal}",
+  "goals.week_starts": "يبدأ الأسبوع يوم",
+  "goals.previous_weeks": "الأسابيع السابقة",
+  "goals.achieved": "تحقّق",
+  "goals.missed": "لم يتحقّق",
+  "goals.empty_title": "لم تسجّل وقت تركيز بعد",
+  "goals.empty_body": "حدّد هدفك، ثم ابدأ جلسة تركيز. سيظهر تقدّمك هنا، ولا تُحسب الاستراحات.",
 };

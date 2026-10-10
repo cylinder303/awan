@@ -6,7 +6,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::{DialogExt, FilePath};
 
 use crate::backup::{Backup, ImportSummary};
-use crate::db::Session;
+use crate::db::{Session, WeekGoal};
 use crate::{clock, lock, save_settings, AppState, HISTORY_EVENT};
 
 #[tauri::command]
@@ -26,6 +26,16 @@ pub fn delete_session(app: AppHandle, id: i64) -> Result<bool, String> {
 #[tauri::command]
 pub fn focus_totals(state: State<'_, AppState>, ranges: Vec<(i64, i64)>) -> Result<Vec<u64>, String> {
     lock(&state.db).focus_totals(&ranges)
+}
+
+#[tauri::command]
+pub fn week_goals(state: State<'_, AppState>) -> Result<Vec<WeekGoal>, String> {
+    lock(&state.db).week_goals()
+}
+
+#[tauri::command]
+pub fn first_session_at(state: State<'_, AppState>) -> Result<Option<i64>, String> {
+    lock(&state.db).first_session_at()
 }
 
 #[tauri::command]
@@ -50,8 +60,10 @@ pub async fn export_backup(app: AppHandle, file_name: String) -> Result<bool, St
     let backup = {
         let state = app.state::<AppState>();
         let settings = lock(&state.settings).clone();
-        let sessions = lock(&state.db).all_sessions()?;
-        Backup::new(settings, sessions, clock::wall_ms())
+        let db = lock(&state.db);
+        let mut backup = Backup::new(settings, db.all_sessions()?, clock::wall_ms());
+        backup.week_goals = db.week_goals()?;
+        backup
     };
     let Some(path) = save_dialog(&app, &file_name, "Awan backup", "json") else {
         return Ok(false);
@@ -74,7 +86,13 @@ pub async fn import_backup(app: AppHandle) -> Result<Option<ImportSummary>, Stri
     let text = std::fs::read_to_string(path).map_err(|_| "unreadable".to_string())?;
     let backup = Backup::from_json(&text)?;
 
-    let added = lock(&app.state::<AppState>().db).merge_sessions(&backup.sessions)?;
+    let state = app.state::<AppState>();
+    let added = {
+        let mut db = lock(&state.db);
+        let added = db.merge_sessions(&backup.sessions)?;
+        db.merge_week_goals(&backup.week_goals)?;
+        added
+    };
     save_settings(&app, backup.settings);
     let _ = app.emit(HISTORY_EVENT, ());
     Ok(Some(ImportSummary { added, skipped: backup.sessions.len() - added }))

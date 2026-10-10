@@ -29,6 +29,8 @@ export const history = {
   remove: (id) => invoke("delete_session", { id }),
   focusTotals: (ranges) => invoke("focus_totals", { ranges }),
   recentTasks: (limit = 8) => invoke("recent_tasks", { limit }),
+  weekGoals: () => invoke("week_goals"),
+  firstSessionAt: () => invoke("first_session_at"),
   exportCsv: (contents, fileName) => invoke("export_csv", { contents, fileName }),
   exportBackup: (fileName) => invoke("export_backup", { fileName }),
   importBackup: () => invoke("import_backup"),

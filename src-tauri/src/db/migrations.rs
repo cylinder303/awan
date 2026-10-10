@@ -20,6 +20,12 @@ const MIGRATIONS: &[&str] = &[
         completed   INTEGER NOT NULL CHECK (completed IN (0, 1))
     );
     CREATE INDEX sessions_started_at ON sessions (started_at);",
+    // 3: weekly goal in effect for each week, so past results keep the goal
+    // they were measured against. week_key is the local start date of the week.
+    "CREATE TABLE week_goals (
+        week_key     TEXT    PRIMARY KEY,
+        goal_minutes INTEGER NOT NULL CHECK (goal_minutes > 0)
+    );",
 ];
 
 pub fn run(conn: &mut Connection) -> Result<(), String> {

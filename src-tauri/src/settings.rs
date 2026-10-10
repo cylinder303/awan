@@ -35,6 +35,10 @@ pub struct Settings {
     pub always_on_top: bool,
     /// First day of the week for weekly totals: "saturday", "sunday" or "monday".
     pub week_start: String,
+    /// Weekly focus goal.
+    pub weekly_goal_minutes: u32,
+    pub daily_goal_enabled: bool,
+    pub daily_goal_minutes: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -62,6 +66,9 @@ impl Default for Settings {
             language: "auto".to_string(),
             always_on_top: false,
             week_start: "saturday".to_string(),
+            weekly_goal_minutes: 20 * 60,
+            daily_goal_enabled: false,
+            daily_goal_minutes: 4 * 60,
         }
     }
 }
@@ -86,6 +93,9 @@ impl Settings {
         self.long_break_minutes = self.long_break_minutes.clamp(1, 120);
         self.sessions_before_long = self.sessions_before_long.clamp(1, 12);
         self.volume = self.volume.min(100);
+        // Weekly goal: 1-100 hours in whole hours. Daily goal: 30 min - 16 h in half hours.
+        self.weekly_goal_minutes = (self.weekly_goal_minutes.clamp(60, 6000) + 30) / 60 * 60;
+        self.daily_goal_minutes = (self.daily_goal_minutes.clamp(30, 960) + 15) / 30 * 30;
         if !sound::exists(&self.sound) {
             self.sound = d.sound;
         }
@@ -163,6 +173,10 @@ mod tests {
         }
         .sanitized();
         assert_eq!((s.focus_minutes, s.short_break_minutes, s.sessions_before_long, s.volume), (1, 60, 12, 100));
+        let g = Settings { weekly_goal_minutes: 0, daily_goal_minutes: 100_000, ..Settings::default() }.sanitized();
+        assert_eq!((g.weekly_goal_minutes, g.daily_goal_minutes), (60, 960));
+        let r = Settings { weekly_goal_minutes: 125, daily_goal_minutes: 50, ..Settings::default() }.sanitized();
+        assert_eq!((r.weekly_goal_minutes, r.daily_goal_minutes), (120, 60), "rounded to whole / half hours");
     }
 
     #[test]
