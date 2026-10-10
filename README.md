@@ -27,8 +27,8 @@ A minimal, elegant Pomodoro timer for Windows
 | ![المؤقت](docs/screenshots/timer.png) | ![الوضع المصغّر](docs/screenshots/mini-mode.png) |
 | **السجل** | **الأهداف** |
 | ![السجل](docs/screenshots/history.png) | ![الأهداف](docs/screenshots/goals.png) |
-
-![السمات](docs/screenshots/themes.png)
+| **الإعدادات** | **السمات** |
+| ![الإعدادات](docs/screenshots/settings.png) | ![السمات](docs/screenshots/themes.png) |
 
 ### المزايا
 
@@ -98,8 +98,8 @@ git tag v1.1.0 && git push && git push origin v1.1.0
 | ![Timer](docs/screenshots/timer.png) | ![Mini mode](docs/screenshots/mini-mode.png) |
 | **History** | **Goals** |
 | ![History](docs/screenshots/history.png) | ![Goals](docs/screenshots/goals.png) |
-
-![Themes](docs/screenshots/themes.png)
+| **Settings** | **Themes** |
+| ![Settings](docs/screenshots/settings.png) | ![Themes](docs/screenshots/themes.png) |
 
 ### Features
 
