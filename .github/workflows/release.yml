@@ -1,0 +1,98 @@
+name: Release
+
+# Publishing a version tag (for example v1.0.0) builds the Windows installer,
+# checks that the app starts, and attaches the installer to the GitHub
+# release of that tag (creating the release if it does not exist yet).
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)build, e.g. v1.0.0"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Check the tag matches the app version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "::error::Tag $TAG does not match the app version $VERSION. Run 'npm run version -- <x.y.z>', commit, then tag v<x.y.z>."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: JavaScript tests
+        run: npm test
+
+      - name: Rust tests
+        working-directory: src-tauri
+        run: cargo test
+
+      - name: Build installer
+        run: npx tauri build
+
+      - name: Keep a copy of the installer
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp "src-tauri/target/release/bundle/nsis/Awan_${VERSION}_x64-setup.exe" dist/
+
+      - name: Build test binary
+        working-directory: src-tauri
+        run: cargo build --release --features smoke-test,tauri/custom-protocol
+
+      - name: Smoke test
+        run: |
+          npm install --no-save playwright-core@1
+          node scripts/smoke-test.mjs src-tauri/target/release/awan.exe smoke
+
+      - name: Publish to GitHub Releases
+        shell: bash
+        run: |
+          FILE="dist/Awan_${VERSION}_x64-setup.exe"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$FILE" --clobber
+          else
+            gh release create "$TAG" "$FILE" --title "Awan $TAG" --notes-file .github/release-notes.md
+          fi
+
+      - name: Upload smoke test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test
+          path: smoke
+          if-no-files-found: ignore

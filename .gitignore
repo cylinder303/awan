@@ -12,5 +12,7 @@ src-tauri/gen/
 .DS_Store
 Thumbs.db
 
-# Logs
+# Logs and local test output
 *.log
+dist/
+smoke/

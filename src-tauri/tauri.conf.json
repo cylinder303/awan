@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Awan",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "identifier": "io.github.cylinder303.awan",
   "build": {
     "frontendDist": "../src"
@@ -56,10 +56,10 @@
     "targets": [
       "nsis"
     ],
-    "publisher": "Awan",
-    "copyright": "MIT License",
+    "publisher": "cylinder303",
+    "copyright": "Copyright (c) 2026 cylinder303. MIT License.",
     "category": "Productivity",
-    "shortDescription": "A minimal Pomodoro timer",
+    "shortDescription": "Awan: a minimal Pomodoro timer",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -79,8 +79,12 @@
           "Arabic"
         ],
         "displayLanguageSelector": false,
-        "installerIcon": "icons/icon.ico"
+        "installerIcon": "icons/icon.ico",
+        "sidebarImage": "installer/sidebar.bmp",
+        "headerImage": "installer/header.bmp"
       }
-    }
+    },
+    "homepage": "https://github.com/cylinder303/-",
+    "longDescription": "A minimal, offline Pomodoro timer for Windows with focus statistics, goals, a mini mode and Arabic/English support."
   }
 }

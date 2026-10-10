@@ -36,7 +36,6 @@ export default {
   "switch.confirm": "Change",
   "common.cancel": "Cancel",
 
-
   "unit.min": "min",
   "unit.sessions": "sessions",
 
