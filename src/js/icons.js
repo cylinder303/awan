@@ -4,7 +4,7 @@ const stroke = (body, size = 24) =>
   `<svg viewBox="0 0 ${size} ${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 
 export const icons = {
-  logo: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="3"/><path d="M12 3.5A8.5 8.5 0 1 1 3.5 12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`,
+  logo: `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11.5" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="5"/><path d="M16 4.5A11.5 11.5 0 1 1 4.5 16" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><circle cx="16" cy="16" r="2.6" fill="currentColor"/></svg>`,
 
   // Title bar glyphs are drawn on a 10x10 grid with 1px strokes, like Windows.
   minimize: `<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5h10" stroke="currentColor" stroke-width="1"/></svg>`,

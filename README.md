@@ -159,7 +159,8 @@ src/                 UI: HTML, CSS and JavaScript (no framework, no bundler)
   locales/           Arabic and English text
 src-tauri/           native side (Rust): timer engine, SQLite storage,
                      tray, mini window, shortcuts, notifications
-scripts/             icon, sound generator, version bump, Windows smoke test
+scripts/             logo sources, icon and sound generators, version bump,
+                     Windows tests (see docs/logo for the logo)
 tests/               JavaScript unit tests
 ```
 

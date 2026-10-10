@@ -9,7 +9,7 @@
     "tauri": "tauri",
     "dev": "tauri dev",
     "build": "tauri build",
-    "icons": "tauri icon scripts/icon.svg",
+    "icons": "node scripts/icons.mjs",
     "test": "node --test \"tests/*.test.js\"",
     "version": "node scripts/set-version.mjs"
   },
