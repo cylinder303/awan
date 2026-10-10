@@ -296,6 +296,9 @@ pub(crate) fn commit_settings(app: &AppHandle, next: Settings) -> Settings {
 /// closing the mini timer returns to the full window.
 fn on_close_requested(window: &Window, api: &CloseRequestApi) {
     let app = window.app_handle();
+    if app.try_state::<AppState>().is_none() {
+        return; // still starting up: let it close normally
+    }
     api.prevent_close();
     if window.label() == display::MINI {
         display::show(app, View::Full);
@@ -360,7 +363,7 @@ fn check_goals(app: &AppHandle, record: &SessionRecord) {
 }
 
 fn save_snapshot(app: &AppHandle) {
-    let state = app.state::<AppState>();
+    let Some(state) = app.try_state::<AppState>() else { return };
     // Until the user answers the resume prompt, keep the stored session as is.
     if state.pending_resume.load(Ordering::SeqCst) {
         return;

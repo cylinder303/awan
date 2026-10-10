@@ -120,7 +120,9 @@ pub fn track(window: &tauri::Window) {
         return; // Windows reports a far-off position for minimized windows
     }
     let app = window.app_handle();
-    let state = app.state::<AppState>();
+    // Windows can report moves while the windows are still being created,
+    // before the app state exists.
+    let Some(state) = app.try_state::<AppState>() else { return };
     let maximized = window.is_maximized().unwrap_or(false);
     let mut map = lock(&state.geometry);
     let previous = map.get(window.label()).copied();
@@ -142,7 +144,7 @@ pub fn track(window: &tauri::Window) {
 
 /// Write remembered geometry to the database (called from the heartbeat).
 pub fn flush(app: &AppHandle) {
-    let state = app.state::<AppState>();
+    let Some(state) = app.try_state::<AppState>() else { return };
     if !state.geometry_dirty.swap(false, Ordering::SeqCst) {
         return;
     }
