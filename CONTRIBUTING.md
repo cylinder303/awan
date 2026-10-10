@@ -69,6 +69,8 @@ git push && git push origin v1.1.0
 
 عند رفع الوسم يتحقق GitHub Actions من تطابقه مع رقم الإصدار، ويشغّل الاختبارات، ويبني المثبّت ويختبره، ثم ينشئ صفحة الإصدار ويرفق بها المثبّت مع ملاحظات التثبيت من `.github/release-notes.md`.
 
+ويمكن النشر دون رفع وسم: بعد رفع التعديلات افتح تبويب **Actions** ← **Release** ← **Run workflow**، واكتب الوسم (مثل `v1.1.0`)، فيُنشأ الوسم والإصدار تلقائيًا.
+
 </div>
 
 ---
@@ -137,3 +139,5 @@ git push && git push origin v1.1.0
 ```
 
 Pushing the tag makes GitHub Actions check that it matches the app version, run the tests, build and test the installer, then create the release with the installer attached and the install notes from `.github/release-notes.md`.
+
+You can also publish without pushing a tag: after pushing your commits, open **Actions** → **Release** → **Run workflow** and enter the tag (for example `v1.1.0`); the tag and the release are created for you.

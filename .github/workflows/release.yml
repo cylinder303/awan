@@ -1,15 +1,18 @@
 name: Release
 
-# Publishing a version tag (for example v1.0.0) builds the Windows installer,
-# checks that the app starts, and attaches the installer to the GitHub
-# release of that tag (creating the release if it does not exist yet).
+# Builds the Windows installer, checks that it installs and that the app
+# starts, then attaches it to the GitHub release of the tag (creating the
+# release if it does not exist yet). Two ways to start it:
+#   - push a version tag, for example v1.0.0;
+#   - Actions -> Release -> Run workflow, with the tag. An existing tag is
+#     rebuilt; a new one is created on the commit the workflow runs from.
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to (re)build, e.g. v1.0.0"
+        description: "Version tag, e.g. v1.0.0 (created if it does not exist)"
         required: true
 
 permissions:
@@ -27,8 +30,15 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ env.TAG }}
+
+      - name: Build the tag if it already exists
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            git fetch --depth 1 origin "refs/tags/$TAG:refs/tags/$TAG"
+            git checkout --detach "$TAG"
+          fi
+          echo "SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Check the tag matches the app version
         shell: bash
@@ -90,7 +100,8 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$FILE" --clobber
           else
-            gh release create "$TAG" "$FILE" --title "Awan $TAG" --notes-file .github/release-notes.md
+            # Creates the tag on the built commit when it does not exist yet.
+            gh release create "$TAG" "$FILE" --target "$SHA" --title "Awan $TAG" --notes-file .github/release-notes.md
           fi
 
       - name: Upload smoke test results
