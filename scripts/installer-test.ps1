@@ -20,6 +20,21 @@ function Run([string] $exe, [string[]] $arguments, [int] $seconds = 180) {
   return $p.ExitCode
 }
 
+function AppExe {
+  Get-ChildItem $installDir -Filter *.exe -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -notlike "uninstall*" } | Select-Object -First 1
+}
+# The uninstaller may delete a key while we read it, so errors are ignored.
+function InstalledEntry {
+  Get-ChildItem "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall" -ErrorAction SilentlyContinue |
+    ForEach-Object { Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue } |
+    Where-Object { $_.DisplayName -like "Awan*" } | Select-Object -First 1
+}
+
+$installDir = Join-Path $env:LOCALAPPDATA "Awan"
+$startMenu = Join-Path ([Environment]::GetFolderPath("Programs")) "Awan.lnk"
+$desktop = Join-Path ([Environment]::GetFolderPath("Desktop")) "Awan.lnk"
+
 $item = Get-Item $Setup
 Check "installer file looks complete" ($item.Length -gt 1MB) "$([math]::Round($item.Length / 1MB, 2)) MB"
 
@@ -32,20 +47,13 @@ $code = Run $copy @("/S")
 Check "silent install exits with 0" ($code -eq 0) "exit code $code"
 
 # 2. What the installer created.
-$installDir = Join-Path $env:LOCALAPPDATA "Awan"
-$exe = Get-ChildItem $installDir -Filter *.exe -ErrorAction SilentlyContinue |
-  Where-Object { $_.Name -notlike "uninstall*" } | Select-Object -First 1
+$exe = AppExe
 Check "app installed under %LOCALAPPDATA%\Awan" ($null -ne $exe) "$($exe.FullName)"
 Check "uninstaller present" (Test-Path (Join-Path $installDir "uninstall.exe"))
-
-$startMenu = Join-Path ([Environment]::GetFolderPath("Programs")) "Awan.lnk"
 Check "Start menu shortcut" (Test-Path $startMenu) $startMenu
-$desktop = Join-Path ([Environment]::GetFolderPath("Desktop")) "Awan.lnk"
 Check "desktop shortcut" (Test-Path $desktop) $desktop
 
-$entry = Get-ChildItem "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall" |
-  ForEach-Object { Get-ItemProperty $_.PSPath } |
-  Where-Object { $_.DisplayName -like "Awan*" } | Select-Object -First 1
+$entry = InstalledEntry
 Check "listed in Installed apps" ($null -ne $entry) "$($entry.DisplayName) $($entry.DisplayVersion)"
 if ($entry) {
   Check "publisher shown" ($entry.Publisher -eq "cylinder303") "$($entry.Publisher)"
@@ -55,13 +63,16 @@ if ($entry) {
 # 3. Uninstall.
 $code = Run (Join-Path $installDir "uninstall.exe") @("/S")
 Check "silent uninstall exits with 0" ($code -eq 0) "exit code $code"
-# The uninstaller relaunches itself from a temp copy; wait for it to finish.
+# The uninstaller relaunches itself from a temp copy and keeps working after
+# this call returns: it removes the app files first, then the shortcuts, then
+# the Installed apps entry. Wait until all of it is gone (or 30 s pass).
 for ($i = 0; $i -lt 30; $i++) {
-  $left = Get-ChildItem $installDir -Filter *.exe -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike "uninstall*" }
-  if ($null -eq $left) { break }
+  if (-not (AppExe) -and -not (Test-Path $startMenu) -and -not (Test-Path $desktop) -and -not (InstalledEntry)) { break }
   Start-Sleep -Seconds 1
 }
-Check "app removed" ($null -eq $left)
+Check "app removed" ($null -eq (AppExe))
 Check "Start menu shortcut removed" (-not (Test-Path $startMenu))
+Check "desktop shortcut removed" (-not (Test-Path $desktop))
+Check "removed from Installed apps" ($null -eq (InstalledEntry))
 
 if ($failed) { exit 1 }
