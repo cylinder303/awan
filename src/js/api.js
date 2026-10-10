@@ -3,6 +3,21 @@
 
 const tauri = window.__TAURI__;
 const invoke = (cmd, args) => tauri.core.invoke(cmd, args);
+
+/**
+ * Run the first call of a window, retrying for a few seconds if the native
+ * side is not ready yet (a window can load faster than the app starts).
+ */
+export async function whenReady(call, { tries = 30, delay = 150 } = {}) {
+  for (let i = 1; ; i++) {
+    try {
+      return await call();
+    } catch (error) {
+      if (i >= tries) throw error;
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+}
 const listen = (event, fn) => tauri.event.listen(event, (e) => fn(e.payload));
 
 export const timer = {

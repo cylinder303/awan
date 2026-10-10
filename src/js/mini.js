@@ -8,6 +8,7 @@ import { detectLanguage, setLanguage, t } from "./i18n.js";
 import { formatClock } from "./format.js";
 import { icons, renderIcons } from "./icons.js";
 import { initShortcuts } from "./shortcuts.js";
+import { installGuard } from "./guard.js";
 
 const root = document.getElementById("mini");
 const time = root.querySelector(".mini__time");
@@ -49,6 +50,7 @@ function applySettings(s) {
 }
 
 async function boot() {
+  installGuard();
   await settings.load();
   settings.subscribe(applySettings);
   renderIcons();

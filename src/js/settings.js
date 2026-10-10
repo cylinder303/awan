@@ -1,7 +1,7 @@
 // Settings shared by every view. The backend validates and stores them;
 // this module keeps the latest copy and notifies subscribers.
 
-import { settingsApi } from "./api.js";
+import { settingsApi, whenReady } from "./api.js";
 
 let current = null;
 let latest = 0; // id of the most recent local update
@@ -18,7 +18,7 @@ export const settings = {
   get: () => current,
 
   async load() {
-    publish(await settingsApi.get());
+    publish(await whenReady(() => settingsApi.get()));
     // Changes made in another window (e.g. mini mode) arrive here too.
     // Our own echoes are ignored while a local change is still in flight.
     await settingsApi.onChanged((next) => pending === 0 && publish(next));

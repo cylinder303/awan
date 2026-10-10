@@ -94,23 +94,20 @@ pub fn place(app: &AppHandle, window: &WebviewWindow) {
     let saved = lock(&state.geometry).get(window.label()).copied().or_else(|| {
         lock(&state.db).get::<Geometry>(&geometry_key(window.label())).ok().flatten()
     });
-    let current = window.outer_size().ok();
     let (areas, primary) = work_areas(window);
     let target = match saved {
         Some(g) if areas.is_empty() || is_reachable(&g, &areas) => Some(g),
         Some(g) => primary.or(areas.first().copied()).map(|a| centered(g.width, g.height, &a)),
         None => None,
     };
+    // First run (nothing saved): keep the default size and the centred
+    // position from tauri.conf.json.
     if let Some(g) = target {
         let _ = window.set_size(PhysicalSize::new(g.width, g.height));
         let _ = window.set_position(PhysicalPosition::new(g.x, g.y));
         if g.maximized {
             let _ = window.maximize();
         }
-    } else if let (Some(size), Some(area)) = (current, primary) {
-        // First run: keep the default size, centred on the main screen.
-        let g = centered(size.width, size.height, &area);
-        let _ = window.set_position(PhysicalPosition::new(g.x, g.y));
     }
 }
 

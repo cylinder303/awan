@@ -76,9 +76,12 @@ try {
     });
 
   if (main) {
+    // What the user sees on first launch is what matters most.
     const before = await probe(main);
     log(`main as booted: ${JSON.stringify(before)}`);
     await main.screenshot({ path: `${out}/main-as-booted.png` }).catch((e) => log(`screenshot failed: ${e.message}`));
+    check("first launch: timer face rendered", before.time === "25:00", String(before.time));
+    check("first launch: icons rendered", before.icons > 5, String(before.icons));
 
     // Reload to capture any errors raised while booting.
     const errors = [];
@@ -92,8 +95,7 @@ try {
     await main.screenshot({ path: `${out}/main-after-reload.png` }).catch((e) => log(`screenshot failed: ${e.message}`));
 
     check("IPC answers get_settings", after.get_settings === "ok", after.get_settings);
-    check("timer face rendered", after.time === "25:00", String(after.time));
-    check("icons rendered", after.icons > 5, String(after.icons));
+    check("after reload: timer face rendered", after.time === "25:00", String(after.time));
     check("no errors while booting", errors.filter((e) => !e.startsWith("warning")).length === 0);
   }
 

@@ -156,6 +156,14 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     });
     let handle = app.handle().clone();
 
+    // The windows are created here rather than by Tauri ("create": false in
+    // tauri.conf.json): Windows pumps messages while it builds each webview,
+    // so a page that loads early could otherwise call a command before the
+    // state above exists and fail to start.
+    for config in app.config().app.windows.clone() {
+        tauri::WebviewWindowBuilder::from_config(&handle, &config)?.build()?;
+    }
+
     for label in [display::MAIN, display::MINI] {
         if let Some(window) = app.get_webview_window(label) {
             display::place(&handle, &window);

@@ -11,6 +11,7 @@ import { initTitlebar } from "./titlebar.js";
 import { initRouter, navigate } from "./router.js";
 import { initShortcuts } from "./shortcuts.js";
 import { openDialog } from "./components/dialog.js";
+import { installGuard } from "./guard.js";
 
 async function askResume(view) {
   const resume = await openDialog({
@@ -43,6 +44,7 @@ function applySettings(s) {
 }
 
 async function boot() {
+  installGuard();
   await settings.load();
   settings.subscribe(applySettings);
   renderIcons();

@@ -22,7 +22,8 @@
         "maximizable": true,
         "decorations": false,
         "shadow": true,
-        "visible": false
+        "visible": false,
+        "create": false
       },
       {
         "label": "mini",
@@ -41,7 +42,9 @@
         "alwaysOnTop": true,
         "skipTaskbar": true,
         "visible": false,
-        "focus": false
+        "focus": false,
+        "create": false,
+        "center": true
       }
     ],
     "security": {
