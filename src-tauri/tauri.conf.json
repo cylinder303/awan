@@ -81,7 +81,8 @@
         "displayLanguageSelector": false,
         "installerIcon": "icons/icon.ico",
         "sidebarImage": "installer/sidebar.bmp",
-        "headerImage": "installer/header.bmp"
+        "headerImage": "installer/header.bmp",
+        "installerHooks": "installer/hooks.nsh"
       }
     },
     "homepage": "https://github.com/cylinder303/awan",
