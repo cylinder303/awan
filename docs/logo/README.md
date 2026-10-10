@@ -7,8 +7,8 @@ A ring three-quarters full: a session in progress.
 | **Current: terracotta** | <img src="../../scripts/icon.svg" width="96" alt="Terracotta app icon"> | <img src="../../scripts/tray-icon.svg" width="32" alt="Terracotta tray icon"> |
 | Alternate: mint | <img src="mint/icon.svg" width="96" alt="Mint app icon"> | <img src="mint/tray-icon.svg" width="32" alt="Mint tray icon"> |
 
-Terracotta matches the Focus colour the app opens with. Mint (the Break
-colour of the Dark theme) is kept here, ready to use.
+Terracotta matches the Focus color the app opens with. Mint (the Break
+color of the Dark theme) is kept here, ready to use.
 
 ## Where the logo lives
 

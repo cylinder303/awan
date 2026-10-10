@@ -4,9 +4,11 @@
 
 # أوان · Awan
 
-مؤقّت بومودورو أنيق وبسيط لويندوز
+مؤقّت بومودورو هادئ وبسيط لويندوز
 <br />
-A minimal, elegant Pomodoro timer for Windows
+A calm, minimal Pomodoro timer for Windows
+
+**[تنزيل أحدث إصدار · Download the latest release](../../releases/latest)**
 
 [العربية](#العربية) · [English](#english)
 
@@ -18,7 +20,7 @@ A minimal, elegant Pomodoro timer for Windows
 
 ## العربية
 
-**أوان** مؤقّت بومودورو لسطح المكتب يعمل دون اتصال بالإنترنت: جلسات تركيز واستراحات، وإحصاءات وأهداف أسبوعية، ووضع مصغّر يبقى فوق النوافذ، بواجهة هادئة تدعم العربية والإنجليزية.
+**أوان** مؤقّت بومودورو لسطح مكتب ويندوز يعمل بالكامل دون اتصال بالإنترنت. يقسّم وقتك إلى جلسات تركيز تتخلّلها استراحات، ويحفظ سجلّ جلساتك ويتابع أهدافك، بواجهة هادئة باللغتين العربية والإنجليزية.
 
 ### لقطات الشاشة
 
@@ -32,16 +34,19 @@ A minimal, elegant Pomodoro timer for Windows
 
 ### المزايا
 
-- **المؤقت:** تركيز واستراحة قصيرة وطويلة (افتراضيًا ٢٥ و٥ و١٥ دقيقة، والطويلة بعد كل ٤ جلسات)، وبدء تلقائي اختياري، وإشعار وصوت عند انتهاء كل جلسة: أصوات طبيعية هادئة (قطرات ماء، عصافير، موج البحر...) بلا موسيقى.
-- **دقيق:** يُحسب الوقت من ساعة النظام، فيبقى دقيقًا والنافذة مصغّرة. وإذا دخل الجهاز في السكون يتوقف المؤقت ولا يُحتسب وقت السكون.
-- **لا يضيع شيء:** إذا أُغلق التطبيق أثناء جلسة يسألك عند الفتح التالي: استئناف أم بدء من جديد.
-- **الوضع المصغّر:** نافذة صغيرة فيها الوقت فقط، فوق كل النوافذ، بشفافية قابلة للضبط.
-- **علبة النظام:** الوقت المتبقي عند الوقوف على الأيقونة، وقائمة للتحكم السريع.
-- **الاختصارات:** Space للبدء والإيقاف، وR للإعادة، وS للتخطي، وM للوضع المصغّر، واختصار عام يعمل والتطبيق في الخلفية.
-- **السجل والإحصاءات:** كل جلسة محفوظة، وإجمالي اليوم والأسبوع والشهر، ورسم لآخر ٧ أيام، وتصدير CSV.
-- **الأهداف:** هدف أسبوعي بالساعات وهدف يومي اختياري، مع إشعار عند تحقيقهما.
-- **السمات:** ست سمات جاهزة، وسمة تتبع وضع ويندوز، وسمة مخصّصة بألوانك.
-- **بياناتك على جهازك:** تُحفظ في مجلد AppData، ولا تُحذف عند التحديث أو إعادة التثبيت، ويمكن نسخها احتياطيًا في ملف واحد.
+- **المؤقت:** جلسات تركيز واستراحات قصيرة وطويلة (25 و5 و15 دقيقة افتراضيًا، والاستراحة الطويلة بعد كل 4 جلسات)، مع خيار لبدء الجلسة التالية تلقائيًا.
+- **التنبيه:** إشعار من ويندوز وصوت عند انتهاء كل جلسة. الأصوات طبيعية هادئة بلا موسيقى: قطرات ماء، وطرقات على الباب، وعصافير، وحصاة، وموج البحر.
+- **الدقة:** يُحسب الوقت من ساعة النظام، فيبقى دقيقًا والنافذة مصغّرة أو مخفية. وإذا دخل الجهاز في وضع السكون توقّف المؤقت ولا يُحتسب وقت السكون.
+- **حفظ الجلسة:** إذا أُغلق التطبيق أثناء جلسة، يسألك عند فتحه التالي: هل تستأنفها أم تبدأ من جديد.
+- **الوضع المصغّر:** نافذة صغيرة تعرض الوقت فقط وتبقى فوق جميع النوافذ، بشفافية قابلة للضبط.
+- **علبة النظام:** يستمر المؤقت عند إغلاق النافذة، وتظهر المدة المتبقية عند الوقوف على أيقونته بجوار الساعة، مع قائمة للتحكم السريع.
+- **اختصارات لوحة المفاتيح:** ‏Space للبدء والإيقاف المؤقت، وR لإعادة الجلسة، وS للتخطي، وM للوضع المصغّر، إضافة إلى اختصار عام (Ctrl+Alt+Space افتراضيًا) يعمل والتطبيق في الخلفية.
+- **السجل والإحصاءات:** تُحفظ كل جلسة، مع إجمالي وقت التركيز لليوم والأسبوع والشهر، ورسم بياني لآخر 7 أيام، وتصدير السجل بصيغة CSV.
+- **الأهداف:** هدف أسبوعي بالساعات وهدف يومي اختياري، مع إشعار عند تحقيق كلٍّ منهما.
+- **السمات:** ست سمات جاهزة (فاتح، وداكن، وأسود تام، وأزرق ليلي، وأخضر زيتوني، وبيج دافئ)، وسمة تلقائية تتبع وضع ويندوز، وسمة مخصّصة بألوانك.
+- **اللغة:** العربية والإنجليزية، ويتبع التطبيق لغة النظام افتراضيًا.
+- **التشغيل مع ويندوز:** خيار لتشغيل التطبيق في علبة النظام عند بدء تشغيل الجهاز.
+- **النسخ الاحتياطي:** تصدير الإعدادات والسجلّ في ملف واحد واستعادتهما لاحقًا.
 
 ### قادم قريبًا
 
@@ -62,48 +67,32 @@ A minimal, elegant Pomodoro timer for Windows
 - مواظبة أسبوعية لمن يفضّل إيقاعًا أهدأ: الأسابيع المتتالية التي حققت فيها هدفك الأسبوعي.
 - أطول مواظبة لك، وإشعار هادئ حين تتجاوزها.
 - خريطة لأيام الأشهر الأخيرة في صفحة الأهداف، يشتدّ لون كل يوم بقدر تركيزك فيه.
-- تُحسب من سجلك الحالي، فتظهر مواظبتك من أول يوم بعد التحديث.
+- تُحسب من سجلّك الحالي، فتظهر مواظبتك من أول يوم بعد التحديث.
 - بلا ضغط: لا رسائل لوم ولا تنبيهات حين تنقطع.
 
 ### التنزيل والتثبيت
 
-1. افتح صفحة **[الإصدارات (Releases)](../../releases/latest)** ونزّل ملف `Awan_..._x64-setup.exe`.
-2. شغّل الملف واتبع الخطوات القصيرة. لا يحتاج صلاحيات المدير.
-3. قد يظهر تحذير «Windows protected your PC» لأن المثبّت غير موقَّع رقميًا: اضغط **More info** ثم **Run anyway**.
+1. افتح صفحة **[أحدث إصدار](../../releases/latest)** ونزّل الملف `Awan_…_x64-setup.exe` من قسم **Assets**.
+2. شغّل الملف واتبع خطوات المثبّت. لا يحتاج التثبيت صلاحيات المسؤول.
+3. قد تظهر رسالة «Windows protected your PC» لأن المثبّت غير موقّع رقميًا. اختر **More info** (مزيد من المعلومات) ثم **Run anyway** (تشغيل على أي حال).
 
-يعمل على ويندوز 10 و11. ويُنزَّل WebView2 تلقائيًا إن لم يكن موجودًا (مثبّت مسبقًا في ويندوز 11 ومعظم أجهزة ويندوز 10).
+**المتطلبات:** ويندوز 10 أو 11 بنظام 64 بت. يعتمد التطبيق على مكوّن Microsoft WebView2 المثبّت مسبقًا في ويندوز 11 ومعظم أجهزة ويندوز 10، وإن لم يكن موجودًا نزّله المثبّت تلقائيًا، وهذه الحالة وحدها تحتاج اتصالًا بالإنترنت أثناء التثبيت.
 
-**إلغاء التثبيت:** من «الإعدادات ← التطبيقات ← التطبيقات المثبّتة». تبقى بياناتك محفوظة ما لم تختر حذفها.
+**التحديث:** نزّل الإصدار الجديد وثبّته فوق الحالي، وتبقى إعداداتك وسجلّك كما هي.
 
-### البناء من المصدر
+**إلغاء التثبيت:** من «الإعدادات ← التطبيقات ← التطبيقات المثبّتة» في ويندوز. تبقى بياناتك محفوظة ما لم تختر حذفها أثناء إلغاء التثبيت.
 
-المتطلبات: [Node.js 22](https://nodejs.org) و[Rust](https://rustup.rs) و[متطلبات Tauri لويندوز](https://tauri.app/start/prerequisites/).
+### الخصوصية
 
-```bash
-npm ci             # تنصيب أداة Tauri
-npm run dev        # تشغيل التطبيق للتطوير
-npm test           # اختبارات الواجهة
-cd src-tauri && cargo test   # اختبارات المنطق
-npm run build      # بناء المثبّت في src-tauri/target/release/bundle/nsis
-```
+لا يتصل أوان بالإنترنت ولا يجمع أي بيانات. تُحفظ إعداداتك وسجلّ جلساتك على جهازك فقط، في المجلد `%APPDATA%\io.github.cylinder303.awan`.
 
-### إضافة سمة جديدة
+### المساهمة
 
-كل السمات في ملف واحد: `src/styles/themes.css`. انسخ إحدى الكتل، وغيّر اسمها (`data-theme`) وألوانها، وستظهر في الإعدادات تلقائيًا.
-
-### نشر إصدار جديد
-
-```bash
-npm run version -- 1.1.0   # يحدّث رقم الإصدار في كل الملفات
-git commit -am "Release 1.1.0"
-git tag v1.1.0 && git push && git push origin v1.1.0
-```
-
-عند رفع الوسم يبني GitHub Actions المثبّت ويرفعه إلى صفحة الإصدارات تلقائيًا.
+لاقتراح ميزة أو الإبلاغ عن مشكلة افتح [Issue](../../issues). ولبناء التطبيق من المصدر والمشاركة في تطويره راجع [دليل المساهمة](CONTRIBUTING.md).
 
 ### الترخيص
 
-[MIT](LICENSE). الخط المضمَّن IBM Plex Sans Arabic مرخّص بـ [SIL OFL 1.1](src/assets/fonts/OFL.txt).
+أوان مفتوح المصدر بترخيص [MIT](LICENSE). أما الخط المضمَّن فيه، IBM Plex Sans Arabic، فله ترخيصه الخاص: [SIL Open Font License 1.1](src/assets/fonts/OFL.txt).
 
 </div>
 
@@ -111,7 +100,7 @@ git tag v1.1.0 && git push && git push origin v1.1.0
 
 ## English
 
-**Awan** (Arabic for "the right moment") is a fully offline Pomodoro timer for the Windows desktop: focus sessions and breaks, statistics and weekly goals, and an always-on-top mini timer, in a calm interface available in Arabic and English.
+**Awan** (Arabic for "the right time") is a Pomodoro timer for the Windows desktop that works fully offline. It splits your time into focus sessions with breaks in between, keeps a history of your sessions and tracks your goals, in a calm interface available in Arabic and English.
 
 ### Screenshots
 
@@ -125,16 +114,19 @@ git tag v1.1.0 && git push && git push origin v1.1.0
 
 ### Features
 
-- **Timer:** focus, short break and long break (25 / 5 / 15 minutes by default, a long break after every 4 sessions), optional auto-start, and a notification and sound when each session ends: calm natural sounds (water drops, birds, sea waves...), no music.
-- **Accurate:** time comes from the system clock, so it stays exact while minimized. If the computer sleeps, the timer pauses and sleep time isn't counted.
-- **Nothing lost:** if the app is closed mid-session, it asks on the next launch whether to resume or start fresh.
-- **Mini mode:** a small always-on-top window with just the time, with adjustable opacity.
-- **System tray:** remaining time on hover and a menu for quick control.
-- **Shortcuts:** Space start/pause, R reset, S skip, M mini mode, plus a global shortcut that works in the background.
-- **History and statistics:** every session is saved; totals for today, this week and this month; a 7-day chart; CSV export.
-- **Goals:** a weekly goal in hours and an optional daily goal, with a notification when reached.
-- **Themes:** six built-in themes, an "auto" theme that follows Windows, and a custom theme from your own colors.
-- **Your data stays on your PC:** stored in AppData, kept across updates and reinstalls, and exportable to a single backup file.
+- **Timer:** focus sessions, short breaks and long breaks (25, 5 and 15 minutes by default, with a long break after every 4 sessions), and an option to start the next session automatically.
+- **Alerts:** a Windows notification and a sound when each session ends. The sounds are calm and natural, with no music: water drops, a door knock, birds, a pebble and sea waves.
+- **Accurate:** time comes from the system clock, so it stays exact while the window is minimized or hidden. If the computer goes to sleep, the timer pauses and sleep time is not counted.
+- **Session recovery:** if the app is closed during a session, it asks the next time it opens whether to resume or start over.
+- **Mini mode:** a small window that shows only the time and stays on top of all windows, with adjustable transparency.
+- **System tray:** the timer keeps running when you close the window. Hover over its icon next to the clock to see the time left, or right-click it for quick controls.
+- **Keyboard shortcuts:** Space to start or pause, R to restart the session, S to skip, M for mini mode, plus a global shortcut (Ctrl+Alt+Space by default) that works while the app is in the background.
+- **History and statistics:** every session is saved, with total focus time for today, this week and this month, a chart of the last 7 days, and CSV export.
+- **Goals:** a weekly goal in hours and an optional daily goal, with a notification when you reach each one.
+- **Themes:** six built-in themes (Light, Dark, True black, Midnight blue, Olive green and Warm beige), an automatic theme that follows Windows, and a custom theme in your own colors.
+- **Languages:** Arabic and English; the app follows the system language by default.
+- **Start with Windows:** an option to start the app in the system tray when you sign in.
+- **Backup:** export your settings and history to a single file and restore them later.
 
 ### Coming next
 
@@ -160,54 +152,24 @@ Two features planned for the next release:
 
 ### Download and install
 
-1. Open the **[Releases](../../releases/latest)** page and download `Awan_..._x64-setup.exe`.
-2. Run it and follow the short installer. No administrator rights needed.
-3. Windows may warn "Windows protected your PC" because the installer is not code-signed: click **More info**, then **Run anyway**.
+1. Open the **[latest release](../../releases/latest)** and download `Awan_…_x64-setup.exe` from **Assets**.
+2. Run it and follow the installer. No administrator rights are needed.
+3. Windows may show "Windows protected your PC" because the installer is not code-signed. Click **More info**, then **Run anyway**.
 
-Works on Windows 10 and 11. WebView2 is downloaded automatically if it is missing (it ships with Windows 11 and most Windows 10 PCs).
+**Requirements:** 64-bit Windows 10 or 11. The app uses Microsoft WebView2, which ships with Windows 11 and most Windows 10 PCs. If it is missing, the installer downloads it; that is the only case that needs an internet connection.
 
-**Uninstall:** Settings → Apps → Installed apps. Your data is kept unless you choose to delete it.
+**Updating:** download the new version and install it over the current one. Your settings and history are kept.
 
-### Build from source
+**Uninstalling:** Windows Settings → Apps → Installed apps. Your data is kept unless you choose to delete it during uninstall.
 
-Requirements: [Node.js 22](https://nodejs.org), [Rust](https://rustup.rs) and the [Tauri prerequisites for Windows](https://tauri.app/start/prerequisites/).
+### Privacy
 
-```bash
-npm ci             # install the Tauri CLI
-npm run dev        # run the app in development
-npm test           # UI unit tests
-cd src-tauri && cargo test   # core logic tests
-npm run build      # build the installer into src-tauri/target/release/bundle/nsis
-```
+Awan never connects to the internet and collects no data. Your settings and session history stay on your computer, in `%APPDATA%\io.github.cylinder303.awan`.
 
-### Add a theme
+### Contributing
 
-All themes live in one file, `src/styles/themes.css`. Copy a block, give it a new `data-theme` name and colors, and it appears in Settings automatically.
-
-### Publish a new version
-
-```bash
-npm run version -- 1.1.0   # update the version everywhere
-git commit -am "Release 1.1.0"
-git tag v1.1.0 && git push && git push origin v1.1.0
-```
-
-Pushing the tag makes GitHub Actions build the installer and attach it to the release.
-
-### Project layout
-
-```
-src/                 UI: HTML, CSS and JavaScript (no framework, no bundler)
-  styles/themes.css  all themes
-  js/pages/          timer, history, goals, settings
-  locales/           Arabic and English text
-src-tauri/           native side (Rust): timer engine, SQLite storage,
-                     tray, mini window, shortcuts, notifications
-scripts/             logo sources, icon and sound generators, version bump,
-                     Windows tests (see docs/logo for the logo)
-tests/               JavaScript unit tests
-```
+To suggest a feature or report a problem, open an [issue](../../issues). To build the app from source and help develop it, see the [contributing guide](CONTRIBUTING.md).
 
 ### License
 
-[MIT](LICENSE). The bundled IBM Plex Sans Arabic font is licensed under the [SIL OFL 1.1](src/assets/fonts/OFL.txt).
+Awan is open source under the [MIT License](LICENSE). The bundled IBM Plex Sans Arabic font has its own license, the [SIL Open Font License 1.1](src/assets/fonts/OFL.txt).
