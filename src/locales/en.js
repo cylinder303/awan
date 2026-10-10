@@ -72,11 +72,11 @@ export default {
   "settings.reset_body": "All settings go back to their original values. Your session history is not affected.",
   "settings.reset_confirm": "Restore",
 
-  "sound.chime": "Chime",
-  "sound.bell": "Bell",
-  "sound.marimba": "Marimba",
-  "sound.pulse": "Pulse",
-  "sound.harp": "Harp",
+  "sound.drops": "Water drops",
+  "sound.knock": "Door knock",
+  "sound.birds": "Birds",
+  "sound.pebble": "Pebble",
+  "sound.wave": "Sea wave",
 
   "history.today": "Today",
   "history.yesterday": "Yesterday",

@@ -1,14 +1,15 @@
 //! Alert sounds, played natively so they work while the window is hidden.
 //! Sounds are embedded in the executable (fully offline).
 
-pub const DEFAULT_SOUND: &str = "chime";
+pub const DEFAULT_SOUND: &str = "drops";
 
+/// Natural sounds only, no instruments or melodies (see scripts/gen_sounds.py).
 const SOUNDS: &[(&str, &[u8])] = &[
-    ("chime", include_bytes!("../sounds/chime.wav")),
-    ("bell", include_bytes!("../sounds/bell.wav")),
-    ("marimba", include_bytes!("../sounds/marimba.wav")),
-    ("pulse", include_bytes!("../sounds/pulse.wav")),
-    ("harp", include_bytes!("../sounds/harp.wav")),
+    ("drops", include_bytes!("../sounds/drops.wav")),
+    ("knock", include_bytes!("../sounds/knock.wav")),
+    ("birds", include_bytes!("../sounds/birds.wav")),
+    ("pebble", include_bytes!("../sounds/pebble.wav")),
+    ("wave", include_bytes!("../sounds/wave.wav")),
 ];
 
 pub fn ids() -> Vec<&'static str> {

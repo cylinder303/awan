@@ -32,7 +32,7 @@ A minimal, elegant Pomodoro timer for Windows
 
 ### المزايا
 
-- **المؤقت:** تركيز واستراحة قصيرة وطويلة (افتراضيًا ٢٥ و٥ و١٥ دقيقة، والطويلة بعد كل ٤ جلسات)، وبدء تلقائي اختياري، وإشعار وصوت عند انتهاء كل جلسة.
+- **المؤقت:** تركيز واستراحة قصيرة وطويلة (افتراضيًا ٢٥ و٥ و١٥ دقيقة، والطويلة بعد كل ٤ جلسات)، وبدء تلقائي اختياري، وإشعار وصوت عند انتهاء كل جلسة: أصوات طبيعية هادئة (قطرات ماء، عصافير، موج البحر...) بلا موسيقى.
 - **دقيق:** يُحسب الوقت من ساعة النظام، فيبقى دقيقًا والنافذة مصغّرة. وإذا دخل الجهاز في السكون يتوقف المؤقت ولا يُحتسب وقت السكون.
 - **لا يضيع شيء:** إذا أُغلق التطبيق أثناء جلسة يسألك عند الفتح التالي: استئناف أم بدء من جديد.
 - **الوضع المصغّر:** نافذة صغيرة فيها الوقت فقط، فوق كل النوافذ، بشفافية قابلة للضبط.
@@ -103,7 +103,7 @@ git tag v1.1.0 && git push && git push origin v1.1.0
 
 ### Features
 
-- **Timer:** focus, short break and long break (25 / 5 / 15 minutes by default, a long break after every 4 sessions), optional auto-start, and a notification and sound when each session ends.
+- **Timer:** focus, short break and long break (25 / 5 / 15 minutes by default, a long break after every 4 sessions), optional auto-start, and a notification and sound when each session ends: calm natural sounds (water drops, birds, sea waves...), no music.
 - **Accurate:** time comes from the system clock, so it stays exact while minimized. If the computer sleeps, the timer pauses and sleep time isn't counted.
 - **Nothing lost:** if the app is closed mid-session, it asks on the next launch whether to resume or start fresh.
 - **Mini mode:** a small always-on-top window with just the time, with adjustable opacity.

@@ -72,11 +72,11 @@ export default {
   "settings.reset_body": "ستعود كل الإعدادات إلى قيمها الأصلية. سجل جلساتك لن يتأثر.",
   "settings.reset_confirm": "استعادة",
 
-  "sound.chime": "رنين",
-  "sound.bell": "جرس",
-  "sound.marimba": "ماريمبا",
-  "sound.pulse": "نبضات",
-  "sound.harp": "قيثارة",
+  "sound.drops": "قطرات ماء",
+  "sound.knock": "طرقات على الباب",
+  "sound.birds": "عصافير",
+  "sound.pebble": "حصاة",
+  "sound.wave": "موج البحر",
 
   "history.today": "اليوم",
   "history.yesterday": "أمس",
