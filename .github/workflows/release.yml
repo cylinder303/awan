@@ -70,6 +70,10 @@ jobs:
           mkdir -p dist
           cp "src-tauri/target/release/bundle/nsis/Awan_${VERSION}_x64-setup.exe" dist/
 
+      - name: Installer test
+        shell: pwsh
+        run: ./scripts/installer-test.ps1 "dist/Awan_${env:VERSION}_x64-setup.exe"
+
       - name: Build test binary
         working-directory: src-tauri
         run: cargo build --release --features smoke-test,tauri/custom-protocol
