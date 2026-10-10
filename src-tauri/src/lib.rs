@@ -161,7 +161,15 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // so a page that loads early could otherwise call a command before the
     // state above exists and fail to start.
     for config in app.config().app.windows.clone() {
-        tauri::WebviewWindowBuilder::from_config(&handle, &config)?.build()?;
+        let builder = tauri::WebviewWindowBuilder::from_config(&handle, &config)?;
+        #[cfg(feature = "smoke-test")]
+        let builder = match std::env::var("AWAN_DEVTOOLS_PORT") {
+            Ok(port) => builder.additional_browser_args(&format!(
+                "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --remote-debugging-port={port}"
+            )),
+            Err(_) => builder,
+        };
+        builder.build()?;
     }
 
     for label in [display::MAIN, display::MINI] {

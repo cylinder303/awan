@@ -3,7 +3,9 @@
 //
 //   node scripts/smoke-test.mjs <path-to-awan.exe> <output-dir>
 //
-// Needs `playwright-core` (installed on the fly in CI; no browser download).
+// The exe must be built with the `smoke-test` Cargo feature, which opens the
+// DevTools port given in AWAN_DEVTOOLS_PORT. Needs `playwright-core`
+// (installed on the fly in CI; no browser download).
 
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -20,8 +22,13 @@ const log = (line) => {
 mkdirSync(out, { recursive: true });
 
 const app = spawn(exe, [], {
-  env: { ...process.env, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${PORT}` },
+  env: { ...process.env, AWAN_DEVTOOLS_PORT: String(PORT) },
   stdio: ["ignore", "pipe", "pipe"],
+});
+let exited = null;
+app.on("exit", (code, signal) => {
+  exited = `code ${code}, signal ${signal}`;
+  log(`[app] exited: ${exited}`);
 });
 app.stdout.on("data", (d) => log(`[app] ${d.toString().trim()}`));
 app.stderr.on("data", (d) => log(`[app:err] ${d.toString().trim()}`));
@@ -34,13 +41,14 @@ const check = (name, ok, detail = "") => {
 
 try {
   let connected = false;
-  for (let i = 0; i < 60 && !connected; i++) {
+  for (let i = 0; i < 60 && !connected && exited === null; i++) {
     try {
       connected = (await fetch(`http://127.0.0.1:${PORT}/json/version`)).ok;
     } catch {
       await sleep(500);
     }
   }
+  check("app is still running", exited === null, exited ?? "");
   check("WebView2 DevTools endpoint reachable", connected);
   if (!connected) throw new Error("no DevTools endpoint");
 

@@ -51,6 +51,10 @@ jobs:
 
       # Launch the real app and check through WebView2's DevTools protocol
       # that the interface renders and talks to the native side.
+      - name: Build test binary (opens a DevTools port for the smoke test)
+        working-directory: src-tauri
+        run: cargo build --release --features smoke-test,tauri/custom-protocol
+
       - name: Smoke test
         run: |
           npm install --no-save playwright-core@1
