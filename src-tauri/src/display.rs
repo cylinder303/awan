@@ -49,6 +49,7 @@ pub struct Area {
     pub height: u32,
 }
 
+#[cfg_attr(mobile, allow(dead_code))]
 /// Is enough of the window on screen to grab and move it? The top strip
 /// (where you drag) must lie inside a monitor, at least 80 px wide.
 pub fn is_reachable(g: &Geometry, areas: &[Area]) -> bool {
@@ -60,6 +61,7 @@ pub fn is_reachable(g: &Geometry, areas: &[Area]) -> bool {
     })
 }
 
+#[cfg_attr(mobile, allow(dead_code))]
 /// Centre a window of the given size in an area, shrinking it to fit.
 pub fn centered(width: u32, height: u32, area: &Area) -> Geometry {
     let width = width.min(area.width);
@@ -73,6 +75,7 @@ pub fn centered(width: u32, height: u32, area: &Area) -> Geometry {
     }
 }
 
+#[cfg(desktop)]
 fn work_areas(window: &WebviewWindow) -> (Vec<Area>, Option<Area>) {
     let to_area = |m: &tauri::Monitor| {
         let r = m.work_area();
@@ -87,8 +90,13 @@ fn geometry_key(label: &str) -> String {
     format!("window.{label}")
 }
 
+/// A phone window always fills the screen.
+#[cfg(mobile)]
+pub fn place(_app: &AppHandle, _window: &WebviewWindow) {}
+
 /// Put a window where it was last time, or somewhere visible if that spot
 /// is no longer on any screen (e.g. a monitor was disconnected).
+#[cfg(desktop)]
 pub fn place(app: &AppHandle, window: &WebviewWindow) {
     let state = app.state::<AppState>();
     let saved = lock(&state.geometry).get(window.label()).copied().or_else(|| {
@@ -158,6 +166,10 @@ pub fn current(app: &AppHandle) -> View {
 
 /// Load the view used last time (full or mini).
 pub fn load_view(db: &crate::db::Db) -> View {
+    // A phone has no mini timer.
+    if cfg!(mobile) {
+        return View::Full;
+    }
     db.get::<View>(VIEW_KEY).ok().flatten().unwrap_or(View::Full)
 }
 
@@ -184,6 +196,9 @@ pub fn show(app: &AppHandle, view: View) {
 }
 
 pub fn toggle(app: &AppHandle) {
+    if cfg!(mobile) {
+        return; // no mini timer on a phone
+    }
     let next = match current(app) {
         View::Full => View::Mini,
         View::Mini => View::Full,

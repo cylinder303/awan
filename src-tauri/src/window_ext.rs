@@ -28,7 +28,16 @@ pub fn apply_corner_preference(_window: &WebviewWindow) {}
 
 /// Bring a window to the front, restoring it if minimized or hidden.
 pub fn reveal(window: &WebviewWindow) {
+    #[cfg(desktop)]
     let _ = window.unminimize();
     let _ = window.show();
     let _ = window.set_focus();
+}
+
+/// Keep the window above all others. A phone has nothing to float over.
+pub fn set_always_on_top(window: &WebviewWindow, on: bool) {
+    #[cfg(desktop)]
+    let _ = window.set_always_on_top(on);
+    #[cfg(mobile)]
+    let _ = (window, on);
 }

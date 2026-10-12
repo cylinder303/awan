@@ -77,6 +77,7 @@ pub async fn export_backup(app: AppHandle, file_name: String) -> Result<bool, St
 #[tauri::command]
 pub async fn import_backup(app: AppHandle) -> Result<Option<ImportSummary>, String> {
     let mut dialog = app.dialog().file().add_filter("Awan backup", &["json"]);
+    #[cfg(desktop)]
     if let Some(window) = app.get_webview_window("main") {
         dialog = dialog.set_parent(&window);
     }
@@ -100,6 +101,7 @@ pub async fn import_backup(app: AppHandle) -> Result<Option<ImportSummary>, Stri
 
 fn save_dialog(app: &AppHandle, file_name: &str, filter: &str, ext: &str) -> Option<PathBuf> {
     let mut dialog = app.dialog().file().set_file_name(file_name).add_filter(filter, &[ext]);
+    #[cfg(desktop)]
     if let Some(window) = app.get_webview_window("main") {
         dialog = dialog.set_parent(&window);
     }

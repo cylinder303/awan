@@ -11,7 +11,12 @@ use crate::i18n::Lang;
 use crate::settings::Settings;
 use crate::timer::{Mode, TimerView};
 use crate::display;
-use crate::{apply, clock, commit_settings, lock, save_settings, shortcuts, sound, tray, window_ext, AppState};
+use crate::{apply, clock, lock, save_settings, sound, tray, window_ext, AppState};
+#[cfg(desktop)]
+use crate::commit_settings;
+#[cfg(desktop)]
+use crate::shortcuts;
+#[cfg(desktop)]
 use tauri_plugin_autostart::ManagerExt;
 
 #[derive(Serialize)]
@@ -97,6 +102,7 @@ pub fn toggle_view(app: AppHandle) {
 
 /// Change the system-wide start/pause shortcut ("" turns it off).
 /// On failure the previous shortcut stays active.
+#[cfg(desktop)]
 #[tauri::command]
 pub fn set_global_shortcut(app: AppHandle, shortcut: String) -> Result<Settings, String> {
     let current = lock(&app.state::<AppState>().settings).clone();
@@ -108,12 +114,27 @@ pub fn set_global_shortcut(app: AppHandle, shortcut: String) -> Result<Settings,
 }
 
 /// Add or remove the Windows startup entry.
+#[cfg(desktop)]
 #[tauri::command]
 pub fn set_launch_at_startup(app: AppHandle, enabled: bool) -> Result<Settings, String> {
     let manager = app.autolaunch();
     if enabled { manager.enable() } else { manager.disable() }.map_err(|e| e.to_string())?;
     let current = lock(&app.state::<AppState>().settings).clone();
     Ok(commit_settings(&app, Settings { launch_at_startup: enabled, ..current }))
+}
+
+/// Phones have no system-wide shortcuts.
+#[cfg(mobile)]
+#[tauri::command]
+pub fn set_global_shortcut(_shortcut: String) -> Result<Settings, String> {
+    Err("unsupported".into())
+}
+
+/// Phones have no startup entry.
+#[cfg(mobile)]
+#[tauri::command]
+pub fn set_launch_at_startup(_enabled: bool) -> Result<Settings, String> {
+    Err("unsupported".into())
 }
 
 #[tauri::command]

@@ -13,18 +13,34 @@ mod goals;
 mod i18n;
 mod power;
 mod settings;
+#[cfg(desktop)]
 mod shortcuts;
 mod sound;
 mod timer;
+#[cfg(desktop)]
 mod tray;
 mod window_ext;
+
+/// Phones have no tray: the calls shared with the desktop do nothing.
+#[cfg(mobile)]
+mod tray {
+    use crate::timer::TimerView;
+    use tauri::AppHandle;
+
+    pub struct Tray;
+    pub fn update(_app: &AppHandle, _view: &TimerView) {}
+    pub fn refresh(_app: &AppHandle) {}
+}
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard};
 use std::time::Duration;
 
-use tauri::{AppHandle, CloseRequestApi, Emitter, Manager, Window, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, WindowEvent};
+#[cfg(desktop)]
+use tauri::{CloseRequestApi, Window};
+#[cfg(desktop)]
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_notification::NotificationExt;
 
@@ -36,6 +52,7 @@ use settings::{Settings, SETTINGS_KEY};
 use timer::{Engine, Event, Mode, Now, SessionRecord, Snapshot, Status, TimerView};
 
 const SNAPSHOT_KEY: &str = "active_session";
+#[cfg(desktop)]
 const TRAY_HINT_KEY: &str = "tray_hint_shown";
 /// Passed by the Windows startup entry: start quietly in the tray.
 const AUTOSTART_ARG: &str = "--autostart";
@@ -66,17 +83,24 @@ pub(crate) fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        // Must be registered first: a second launch focuses the running app.
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            display::show(app, display::current(app));
-        }))
+    let builder = tauri::Builder::default();
+    // Must be registered first: a second launch focuses the running app.
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        display::show(app, display::current(app));
+    }));
+    let builder = builder
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_dialog::init());
+    #[cfg(desktop)]
+    let builder = builder
         .plugin(shortcuts::plugin())
-        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec![AUTOSTART_ARG])))
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec![AUTOSTART_ARG])));
+    builder
         .on_window_event(|window, event| match event {
+            #[cfg(desktop)]
             WindowEvent::CloseRequested { api, .. } => on_close_requested(window, api),
             WindowEvent::Moved(_) | WindowEvent::Resized(_) => display::track(window),
             _ => {}
@@ -161,6 +185,10 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // so a page that loads early could otherwise call a command before the
     // state above exists and fail to start.
     for config in app.config().app.windows.clone() {
+        // A phone shows one full-screen window: there is no mini timer.
+        if cfg!(mobile) && config.label != display::MAIN {
+            continue;
+        }
         let builder = tauri::WebviewWindowBuilder::from_config(&handle, &config)?;
         #[cfg(feature = "smoke-test")]
         let builder = match std::env::var("AWAN_DEVTOOLS_PORT") {
@@ -172,25 +200,37 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         builder.build()?;
     }
 
+    #[cfg(desktop)]
+    setup_desktop(&handle, settings);
+
+    power::watch(app.handle().clone());
+    spawn_ticker(app.handle().clone());
+    Ok(())
+}
+
+/// Window placement, tray, shortcut and startup entry: the parts of startup
+/// that only exist on a computer.
+#[cfg(desktop)]
+fn setup_desktop(handle: &AppHandle, settings: Settings) {
     for label in [display::MAIN, display::MINI] {
-        if let Some(window) = app.get_webview_window(label) {
-            display::place(&handle, &window);
+        if let Some(window) = handle.get_webview_window(label) {
+            display::place(handle, &window);
         }
     }
-    if let Some(window) = app.get_webview_window(display::MAIN) {
+    if let Some(window) = handle.get_webview_window(display::MAIN) {
         window_ext::apply_corner_preference(&window);
-        let _ = window.set_always_on_top(settings.always_on_top);
+        window_ext::set_always_on_top(&window, settings.always_on_top);
     }
 
     // Without a tray (rare, e.g. no notification area) the app still works.
-    *lock(&handle.state::<AppState>().tray) = tray::create(&handle).ok();
+    *lock(&handle.state::<AppState>().tray) = tray::create(handle).ok();
     // If another program owns the shortcut, the app still starts; Settings
     // lets the user pick a different one.
-    let _ = shortcuts::register(&handle, &settings.global_shortcut);
+    let _ = shortcuts::register(handle, &settings.global_shortcut);
     // The startup entry can be changed outside the app; trust the system.
     let launches = handle.autolaunch().is_enabled().unwrap_or(false);
     if launches != settings.launch_at_startup {
-        commit_settings(&handle, Settings { launch_at_startup: launches, ..settings });
+        commit_settings(handle, Settings { launch_at_startup: launches, ..settings });
     }
 
     // Each window appears once it has painted (no white flash). If the UI
@@ -205,10 +245,6 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
             display::show(&fallback, display::current(&fallback));
         }
     });
-
-    power::watch(app.handle().clone());
-    spawn_ticker(app.handle().clone());
-    Ok(())
 }
 
 /// Run an engine operation, then perform its side effects and publish the new state.
@@ -282,8 +318,11 @@ pub(crate) fn save_settings(app: &AppHandle, next: Settings) -> Settings {
 /// Back to defaults, including the shortcut and the startup entry.
 pub(crate) fn reset_settings(app: &AppHandle) -> Settings {
     let defaults = Settings::default();
-    let _ = shortcuts::register(app, &defaults.global_shortcut);
-    let _ = app.autolaunch().disable();
+    #[cfg(desktop)]
+    {
+        let _ = shortcuts::register(app, &defaults.global_shortcut);
+        let _ = app.autolaunch().disable();
+    }
     commit_settings(app, defaults)
 }
 
@@ -302,7 +341,7 @@ pub(crate) fn commit_settings(app: &AppHandle, next: Settings) -> Settings {
         Vec::new()
     });
     if let Some(window) = app.get_webview_window(display::MAIN) {
-        let _ = window.set_always_on_top(next.always_on_top);
+        window_ext::set_always_on_top(&window, next.always_on_top);
     }
     let _ = app.emit(SETTINGS_EVENT, &next);
     next
@@ -310,6 +349,7 @@ pub(crate) fn commit_settings(app: &AppHandle, next: Settings) -> Settings {
 
 /// Close button: the main window hides to the tray or quits (per settings);
 /// closing the mini timer returns to the full window.
+#[cfg(desktop)]
 fn on_close_requested(window: &Window, api: &CloseRequestApi) {
     let app = window.app_handle();
     if app.try_state::<AppState>().is_none() {

@@ -1,7 +1,8 @@
 name: CI
 
-# Runs the tests and builds a Windows installer on every push, so each stage
-# can be downloaded and tried from the run's "Artifacts" section.
+# Runs the tests and builds a Windows installer and an Android APK on every
+# push, so each stage can be downloaded and tried from the run's "Artifacts"
+# section.
 on:
   push:
     branches: ["**"]
@@ -71,3 +72,84 @@ jobs:
           name: smoke-test
           path: smoke
           if-no-files-found: ignore
+
+  # Builds the Android app (64-bit ARM, which covers nearly every phone in
+  # use) and uploads an APK that can be installed directly on a phone.
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The runner image ships the Android SDK and NDK; Tauri finds the NDK
+      # through NDK_HOME.
+      - name: Generate the Android project
+        run: |
+          echo "NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
+          export NDK_HOME="$ANDROID_NDK_LATEST_HOME"
+          npx tauri android init --ci --skip-targets-install
+          # App icons from the same source as the Windows ones.
+          npx tauri icon scripts/icon.svg -o "$RUNNER_TEMP/icons"
+          cp -r "$RUNNER_TEMP/icons/android/." src-tauri/gen/android/app/src/main/res/
+
+      - name: Build the APK
+        run: |
+          set -o pipefail
+          if ! npx tauri android build --apk --target aarch64 --ci 2>&1 | tee "$RUNNER_TEMP/build.log"; then
+            # Put the compiler errors on the run page, not only in the log.
+            msg=$(grep -E -A8 '^error' "$RUNNER_TEMP/build.log" | head -n 120 | tr -d '\r' \
+              | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=Android build failed::${msg:-see the build log}"
+            exit 1
+          fi
+
+      # Until a real signing key is set up, sign with a test key kept in the
+      # Actions cache, so a newer build installs over an older one.
+      - name: Restore the test signing key
+        uses: actions/cache@v6
+        with:
+          path: ~/.awan-test.keystore
+          key: awan-android-test-keystore-v1
+
+      - name: Sign the APK
+        run: |
+          KS="$HOME/.awan-test.keystore"
+          if [ ! -f "$KS" ]; then
+            keytool -genkeypair -keystore "$KS" -storepass awan-test -keypass awan-test \
+              -alias awan-test -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Awan test build"
+          fi
+          UNSIGNED=$(find src-tauri/gen/android/app/build/outputs/apk -name '*-unsigned.apk' | head -n 1)
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)/apksigner"
+          VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          mkdir -p dist
+          "$APKSIGNER" sign --ks "$KS" --ks-pass pass:awan-test --ks-key-alias awan-test \
+            --out "dist/Awan_${VERSION}_android-arm64.apk" "$UNSIGNED"
+          "$APKSIGNER" verify dist/*.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: awan-android-apk
+          path: dist/*.apk
+          if-no-files-found: error
