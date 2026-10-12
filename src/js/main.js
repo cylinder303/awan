@@ -8,6 +8,7 @@ import { applyTheme } from "./theme.js";
 import { renderIcons } from "./icons.js";
 import { formatClock } from "./format.js";
 import { initTitlebar } from "./titlebar.js";
+import { initPlatform, isMobile } from "./platform.js";
 import { initRouter, navigate } from "./router.js";
 import { initShortcuts } from "./shortcuts.js";
 import { openDialog } from "./components/dialog.js";
@@ -44,11 +45,12 @@ function applySettings(s) {
 }
 
 async function boot() {
+  initPlatform();
   installGuard();
   await settings.load();
   settings.subscribe(applySettings);
   renderIcons();
-  initTitlebar();
+  if (!isMobile) initTitlebar();
 
   // The body's data-mode drives the accent color everywhere.
   store.subscribe((view) => (document.body.dataset.mode = view.mode));

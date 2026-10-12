@@ -110,6 +110,17 @@ mod tests {
         }
     }
 
+    /// Android plays the alerts from its own copy (res/raw); both are
+    /// written by scripts/gen_sounds.py and must stay identical.
+    #[test]
+    fn android_copies_match() {
+        let raw = concat!(env!("CARGO_MANIFEST_DIR"), "/gen/android/app/src/main/res/raw/");
+        for (id, bytes) in SOUNDS {
+            let copy = std::fs::read(format!("{raw}{id}.wav")).unwrap_or_else(|_| panic!("{id}.wav missing from res/raw"));
+            assert!(copy == *bytes, "{id}.wav differs from src-tauri/sounds; run scripts/gen_sounds.py");
+        }
+    }
+
     #[test]
     fn volume_scales_samples() {
         let wav = SOUNDS[0].1;

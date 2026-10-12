@@ -102,15 +102,9 @@ jobs:
         run: npm ci
 
       # The runner image ships the Android SDK and NDK; Tauri finds the NDK
-      # through NDK_HOME.
-      - name: Generate the Android project
-        run: |
-          echo "NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
-          export NDK_HOME="$ANDROID_NDK_LATEST_HOME"
-          npx tauri android init --ci --skip-targets-install
-          # App icons from the same source as the Windows ones.
-          npx tauri icon scripts/icon.svg -o "$RUNNER_TEMP/icons"
-          cp -r "$RUNNER_TEMP/icons/android/." src-tauri/gen/android/app/src/main/res/
+      # through NDK_HOME. The Android project itself is in src-tauri/gen/android.
+      - name: Point Tauri at the NDK
+        run: echo "NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
 
       - name: Build the APK
         run: |

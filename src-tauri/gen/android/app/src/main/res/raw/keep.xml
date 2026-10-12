@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The alert sounds are looked up by name at run time; keep them when
+     unused resources are removed from release builds. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@raw/*" />

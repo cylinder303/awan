@@ -3,13 +3,16 @@
 //   scripts/icon.svg       -> src-tauri/icons/       (window, taskbar, installer)
 //   scripts/tray-icon.svg  -> src-tauri/icons/tray/  (system tray, one PNG per
 //                             display scale so it stays sharp)
+//   scripts/android-icon.json -> the Android launcher icons, adaptive: the
+//                             ring (android-icon-fg.svg) over the tile color
+//                             (android-icon-bg.svg)
 //
 //   npm run icons
 //
 // The installer bitmaps also show the logo: see scripts/installer-art.mjs.
 
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, cpSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -42,4 +45,13 @@ generate(
   TRAY_SIZES.map((s) => `${s}x${s}.png`),
   join(icons, "tray"),
 );
-console.log("Icons updated in src-tauri/icons");
+
+const androidRes = join(root, "src-tauri/gen/android/app/src/main/res");
+const tmp = mkdtempSync(join(tmpdir(), "awan-icons-"));
+try {
+  execFileSync(process.execPath, [tauri, "icon", join(root, "scripts/android-icon.json"), "-o", tmp], { stdio: "inherit" });
+  cpSync(join(tmp, "android"), androidRes, { recursive: true });
+} finally {
+  rmSync(tmp, { recursive: true, force: true });
+}
+console.log("Icons updated in src-tauri/icons and the Android project");

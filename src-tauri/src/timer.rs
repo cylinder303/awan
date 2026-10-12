@@ -92,6 +92,16 @@ pub enum Event {
     SleepPaused,
 }
 
+/// A session end that will happen if the timer is left alone.
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Ending {
+    pub ended: Mode,
+    pub next: Mode,
+    /// Milliseconds from now until it ends.
+    pub in_ms: u64,
+}
+
 /// What the UI needs to render. Sent to the frontend as JSON.
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -121,6 +131,9 @@ pub struct Snapshot {
     /// Length the session started with (absent in older snapshots).
     #[serde(default)]
     pub duration_ms: Option<u64>,
+    /// The session was counting down when saved.
+    #[serde(default)]
+    pub running: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -142,6 +155,9 @@ pub struct Engine {
     /// Length fixed when the session started, so changing settings
     /// mid-session only affects the sessions that follow.
     locked_ms: Option<u64>,
+    /// Pause when the machine sleeps (computers). Off on phones, where the
+    /// screen is locked during a session as a matter of course.
+    sleep_pauses: bool,
 }
 
 impl Engine {
@@ -158,7 +174,12 @@ impl Engine {
             paused_by_sleep: false,
             started_at: None,
             locked_ms: None,
+            sleep_pauses: true,
         }
+    }
+
+    pub fn set_sleep_pauses(&mut self, on: bool) {
+        self.sleep_pauses = on;
     }
 
     /// Length of the current session.
@@ -294,7 +315,7 @@ impl Engine {
         // Fallback sleep detection: a large wall-clock jump between ticks means
         // the process was frozen (sleep, hibernate, modern standby). Count time
         // only up to the last tick we actually observed.
-        if let Some(last) = last {
+        if let Some(last) = last.filter(|_| self.sleep_pauses) {
             if now.wall - last.wall > SLEEP_GAP_MS {
                 self.bank(last.mono.max(self.segment_start.unwrap_or(0)));
                 self.status = Status::Paused;
@@ -304,10 +325,36 @@ impl Engine {
             }
         }
 
-        if self.remaining_ms(now) == 0 {
-            events.extend(self.finish(now));
+        // On a phone the app may not run for a while (screen off), so a
+        // session can have ended some time ago. Each one ends when it really
+        // did; an auto-started session that also ran out ends the catch-up
+        // rather than starting yet another one nobody was there for.
+        let mut auto_start = self.cfg.auto_start;
+        while self.status == Status::Running && self.remaining_ms(now) == 0 {
+            events.extend(self.finish(now, auto_start));
+            auto_start = false;
         }
         events
+    }
+
+    /// Session ends ahead if the timer is left alone: the current one and,
+    /// with auto-start, the one after it. Empty unless running.
+    #[cfg_attr(not(target_os = "android"), allow(dead_code))]
+    pub fn upcoming(&self, now: Now) -> Vec<Ending> {
+        if self.status != Status::Running {
+            return Vec::new();
+        }
+        let first_in = self.remaining_ms(now);
+        let mut probe = self.clone();
+        let ended = probe.mode;
+        let next = probe.advance();
+        let mut out = vec![Ending { ended, next, in_ms: first_in }];
+        if self.cfg.auto_start {
+            let second_in = first_in + probe.duration_ms();
+            let after = probe.advance();
+            out.push(Ending { ended: next, next: after, in_ms: second_in });
+        }
+        out
     }
 
     pub fn snapshot(&self, now: Now) -> Snapshot {
@@ -319,6 +366,7 @@ impl Engine {
             started_at: self.started_at,
             saved_at: now.wall,
             duration_ms: self.locked_ms,
+            running: self.status == Status::Running,
         }
     }
 
@@ -336,6 +384,22 @@ impl Engine {
             self.locked_ms = None;
         }
         self.paused_by_sleep = false;
+    }
+
+    /// Phones: the system may close the app at any time. A session that was
+    /// counting down when last saved carries on, including the time the app
+    /// was closed (it finishes on the next tick if that time ran it out).
+    pub fn restore_running(&mut self, snap: &Snapshot, now: Now) {
+        self.restore(snap);
+        if !snap.running {
+            return;
+        }
+        let away = now.wall.saturating_sub(snap.saved_at).max(0) as u64;
+        self.locked_ms = Some(snap.duration_ms.unwrap_or_else(|| self.cfg.duration(snap.mode)));
+        self.banked_ms = snap.elapsed_ms + away;
+        self.segment_start = Some(now.mono);
+        self.last_tick = Some(now);
+        self.status = Status::Running;
     }
 
     /// Discard the restored session and begin a fresh cycle.
@@ -382,20 +446,28 @@ impl Engine {
         }
     }
 
-    fn finish(&mut self, now: Now) -> Vec<Event> {
+    /// The countdown reached zero. `allow_auto` lets the next session start
+    /// by itself (when auto-start is on).
+    fn finish(&mut self, now: Now, allow_auto: bool) -> Vec<Event> {
         let ended = self.mode;
+        // How long ago it actually reached zero (more than a tick only when
+        // the app was not running at that moment).
+        let late = self.elapsed_ms(now).saturating_sub(self.duration_ms());
+        let ended_at = now.wall - late as i64;
         let record = SessionRecord {
             mode: ended,
-            started_at: self.started_at.unwrap_or(now.wall),
-            ended_at: now.wall,
+            started_at: self.started_at.unwrap_or(ended_at),
+            ended_at,
             duration_ms: self.duration_ms(),
             task: self.task.clone(),
             completed: true,
         };
         let next = self.advance();
-        let auto_started = self.cfg.auto_start;
+        let auto_started = allow_auto && self.cfg.auto_start;
         if auto_started {
-            self.start(now);
+            // The next session began the moment this one ended.
+            self.start(Now { mono: now.mono.saturating_sub(late), wall: ended_at });
+            self.last_tick = Some(now);
         }
         vec![
             Event::SessionEnded(record),
@@ -680,6 +752,7 @@ mod tests {
             started_at: Some(c.wall - 90_000),
             saved_at: c.wall,
             duration_ms: None,
+            running: false,
         });
         let events = e.start_fresh(c.advance(1_000));
         assert_eq!(events.len(), 1);
@@ -760,5 +833,147 @@ mod tests {
         let v = e.view(now);
         assert_eq!(v.remaining_ms, 0);
         assert_eq!(v.elapsed_ms, 10 * MIN);
+    }
+
+    // ------------------------------------------------------------ phones
+
+    fn phone(cfg: TimerConfig) -> Engine {
+        let mut e = Engine::new(cfg);
+        e.set_sleep_pauses(false);
+        e
+    }
+
+    fn records(events: &[Event]) -> Vec<&SessionRecord> {
+        events
+            .iter()
+            .filter_map(|e| match e {
+                Event::SessionEnded(r) => Some(r),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn phone_keeps_counting_while_the_app_is_frozen() {
+        let mut c = Clock::new();
+        let mut e = phone(short_cfg());
+        let start = c.wall;
+        e.start(c.now());
+        c.run(&mut e, 3 * MIN);
+        // Screen off for 40 minutes: no ticks, both clocks move.
+        let events = e.tick(c.advance(40 * MIN));
+        let ended = records(&events);
+        assert_eq!(ended.len(), 1);
+        assert_eq!(ended[0].ended_at, start + (10 * MIN) as i64, "ends when it really did");
+        assert!(ended[0].completed);
+        assert!(events.contains(&Event::Finished { ended: Mode::Focus, next: Mode::ShortBreak, auto_started: false }));
+        assert_eq!(e.view(c.now()).status, Status::Idle);
+    }
+
+    #[test]
+    fn computers_still_pause_on_sleep_by_default() {
+        let mut c = Clock::new();
+        let mut e = Engine::new(short_cfg());
+        e.start(c.now());
+        assert_eq!(e.tick(c.advance(40 * MIN)), vec![Event::SleepPaused]);
+    }
+
+    #[test]
+    fn late_finish_starts_the_next_session_when_the_last_one_ended() {
+        let mut c = Clock::new();
+        let mut e = phone(TimerConfig { auto_start: true, ..short_cfg() });
+        let start = c.wall;
+        e.start(c.now());
+        // Back after 11 minutes: focus ended at 10, the break has run for 1.
+        let events = e.tick(c.advance(11 * MIN));
+        assert!(events.contains(&Event::Finished { ended: Mode::Focus, next: Mode::ShortBreak, auto_started: true }));
+        let v = e.view(c.now());
+        assert_eq!((v.mode, v.status, v.elapsed_ms), (Mode::ShortBreak, Status::Running, MIN));
+        // The break runs out too; the next focus waits for the user.
+        let events = e.tick(c.advance(30 * MIN));
+        let ended = records(&events);
+        assert_eq!(ended[0].mode, Mode::ShortBreak);
+        assert_eq!(ended[0].started_at, start + (10 * MIN) as i64);
+        assert_eq!(ended[0].ended_at, start + (12 * MIN) as i64);
+        assert_eq!(e.view(c.now()).status, Status::Idle);
+    }
+
+    #[test]
+    fn catch_up_auto_starts_at_most_one_session() {
+        let mut c = Clock::new();
+        let mut e = phone(TimerConfig { auto_start: true, ..short_cfg() });
+        e.start(c.now());
+        // Gone for hours: focus and the auto-started break both end, then stop.
+        let events = e.tick(c.advance(300 * MIN));
+        let modes: Vec<Mode> = records(&events).iter().map(|r| r.mode).collect();
+        assert_eq!(modes, vec![Mode::Focus, Mode::ShortBreak]);
+        assert!(events.contains(&Event::Finished { ended: Mode::ShortBreak, next: Mode::Focus, auto_started: false }));
+        let v = e.view(c.now());
+        assert_eq!((v.mode, v.status), (Mode::Focus, Status::Idle));
+    }
+
+    #[test]
+    fn upcoming_lists_the_ends_ahead() {
+        let mut c = Clock::new();
+        let mut e = Engine::new(short_cfg());
+        assert!(e.upcoming(c.now()).is_empty(), "nothing while idle");
+        e.start(c.now());
+        c.run(&mut e, 3 * MIN);
+        assert_eq!(
+            e.upcoming(c.now()),
+            vec![Ending { ended: Mode::Focus, next: Mode::ShortBreak, in_ms: 7 * MIN }]
+        );
+        e.set_config(TimerConfig { auto_start: true, ..short_cfg() });
+        assert_eq!(
+            e.upcoming(c.now()),
+            vec![
+                Ending { ended: Mode::Focus, next: Mode::ShortBreak, in_ms: 7 * MIN },
+                Ending { ended: Mode::ShortBreak, next: Mode::Focus, in_ms: 9 * MIN },
+            ]
+        );
+        e.pause(c.now());
+        assert!(e.upcoming(c.now()).is_empty(), "nothing while paused");
+    }
+
+    #[test]
+    fn running_session_survives_the_app_being_closed() {
+        let mut c = Clock::new();
+        let mut e = phone(short_cfg());
+        let start = c.wall;
+        e.start(c.now());
+        c.run(&mut e, 4 * MIN);
+        let snap = e.snapshot(c.now());
+        assert!(snap.running);
+
+        // Reopened 3 minutes later in a new process (its own clock origin).
+        c.wall += (3 * MIN) as i64;
+        let reopened = Now { mono: 5, wall: c.wall };
+        let mut e2 = phone(short_cfg());
+        e2.restore_running(&snap, reopened);
+        let v = e2.view(reopened);
+        assert_eq!((v.status, v.elapsed_ms), (Status::Running, 7 * MIN));
+
+        // Reopened after it should have ended: it ends at the right time.
+        let mut e3 = phone(short_cfg());
+        c.wall += (20 * MIN) as i64;
+        let later = Now { mono: 5, wall: c.wall };
+        e3.restore_running(&snap, later);
+        let ended = e3.tick(later);
+        assert_eq!(records(&ended)[0].ended_at, start + (10 * MIN) as i64);
+    }
+
+    #[test]
+    fn paused_snapshot_is_not_resumed_automatically() {
+        let mut c = Clock::new();
+        let mut e = phone(short_cfg());
+        e.start(c.now());
+        c.run(&mut e, 4 * MIN);
+        e.pause(c.now());
+        let snap = e.snapshot(c.now());
+        assert!(!snap.running);
+        let mut e2 = phone(short_cfg());
+        e2.restore_running(&snap, c.advance(MIN));
+        let v = e2.view(c.now());
+        assert_eq!((v.status, v.elapsed_ms), (Status::Paused, 4 * MIN));
     }
 }

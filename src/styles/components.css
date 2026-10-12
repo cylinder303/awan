@@ -1070,7 +1070,7 @@
 .toast {
   position: fixed;
   inset-inline: 16px;
-  bottom: calc(var(--nav-h) + 10px);
+  bottom: calc(var(--nav-h) + 10px + var(--safe-bottom));
   width: fit-content;
   max-width: calc(100% - 32px);
   margin-inline: auto;

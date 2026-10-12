@@ -16,6 +16,13 @@
   --slow: 320ms;
   --titlebar-h: 38px;
   --nav-h: 54px;
+  /* Room for a phone's status bar, navigation bar, cutout and keyboard.
+     The Android app reports them (js/platform.js); env() is the fallback.
+     Both are zero on a computer. */
+  --safe-top: var(--inset-top, env(safe-area-inset-top, 0px));
+  --safe-right: var(--inset-right, env(safe-area-inset-right, 0px));
+  --safe-bottom: var(--inset-bottom, env(safe-area-inset-bottom, 0px));
+  --safe-left: var(--inset-left, env(safe-area-inset-left, 0px));
   /* Accent follows the current timer mode. */
   --accent: var(--focus);
 }
@@ -71,6 +78,17 @@ button {
   display: grid;
   grid-template-rows: var(--titlebar-h) 1fr var(--nav-h);
   height: 100vh;
+  height: 100dvh;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+
+/* A phone has no window to drag or close: no title bar. */
+:root[data-platform="mobile"] .app {
+  grid-template-rows: 1fr var(--nav-h);
+}
+
+:root[data-platform="mobile"] .titlebar {
+  display: none;
 }
 
 .page {

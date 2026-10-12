@@ -4,6 +4,8 @@
 //! exact time while the window is minimized, hidden, or throttled. The UI
 //! only renders `TimerView` snapshots pushed through the `timer://state` event.
 
+#[cfg(target_os = "android")]
+mod alerts;
 mod backup;
 mod clock;
 mod commands;
@@ -20,6 +22,16 @@ mod timer;
 #[cfg(desktop)]
 mod tray;
 mod window_ext;
+
+/// Elsewhere the timer notifies at the moment it finishes.
+#[cfg(not(target_os = "android"))]
+mod alerts {
+    use tauri::AppHandle;
+
+    pub const SCHEDULED_AHEAD: bool = false;
+    pub fn start(_app: &AppHandle) {}
+    pub fn sync(_app: &AppHandle) {}
+}
 
 /// Phones have no tray: the calls shared with the desktop do nothing.
 #[cfg(mobile)]
@@ -154,9 +166,15 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let settings = db.get::<Settings>(SETTINGS_KEY)?.unwrap_or_default().sanitized();
 
     let mut engine = Engine::new(settings.timer_config());
+    // A computer that goes to sleep pauses the session; a phone with its
+    // screen locked is still mid-session.
+    engine.set_sleep_pauses(cfg!(desktop));
     let mut pending = false;
     if let Some(snap) = db.get::<Snapshot>(SNAPSHOT_KEY)? {
-        if snap.elapsed_ms > 0 {
+        if cfg!(mobile) && snap.running {
+            // The system closed the app mid-session: carry on.
+            engine.restore_running(&snap, clock::now());
+        } else if snap.elapsed_ms > 0 {
             engine.restore(&snap);
             pending = true;
         } else {
@@ -263,6 +281,7 @@ where
     let _ = app.emit(STATE_EVENT, &view);
     tray::update(app, &view);
     save_snapshot(app);
+    alerts::sync(app);
     view
 }
 
@@ -279,15 +298,19 @@ fn handle_events(app: &AppHandle, events: Vec<Event>) {
                 let _ = app.emit(HISTORY_EVENT, ());
             }
             Event::Finished { ended, next, auto_started } => {
-                let state = app.state::<AppState>();
-                let lang = *lock(&state.lang);
-                let (title, body) = i18n::finished(lang, ended, next);
-                let _ = app.notification().builder().title(title).body(body).show();
-                let (id, volume) = {
-                    let s = lock(&state.settings);
-                    (s.sound.clone(), s.alert_volume())
-                };
-                sound::play(&id, volume);
+                // Where alerts are scheduled ahead, the system has already
+                // shown this one (with its sound) at the right moment.
+                if !alerts::SCHEDULED_AHEAD {
+                    let state = app.state::<AppState>();
+                    let lang = *lock(&state.lang);
+                    let (title, body) = i18n::finished(lang, ended, next);
+                    let _ = app.notification().builder().title(title).body(body).show();
+                    let (id, volume) = {
+                        let s = lock(&state.settings);
+                        (s.sound.clone(), s.alert_volume())
+                    };
+                    sound::play(&id, volume);
+                }
                 let _ = app.emit(
                     FINISHED_EVENT,
                     serde_json::json!({ "ended": ended, "next": next, "autoStarted": auto_started }),
@@ -444,6 +467,9 @@ fn spawn_ticker(app: AppHandle) {
             };
             let changed = !events.is_empty();
             handle_events(&app, events);
+            if changed {
+                alerts::sync(&app);
+            }
 
             let second = view.remaining_ms.div_ceil(1000);
             if changed || second != last_second {

@@ -14,7 +14,10 @@ from pathlib import Path
 import numpy as np
 
 RATE = 44100
-OUT = Path(__file__).resolve().parent.parent / "src-tauri" / "sounds"
+ROOT = Path(__file__).resolve().parent.parent
+OUT = ROOT / "src-tauri" / "sounds"
+# Android plays notification sounds from the app's resources.
+ANDROID_RAW = ROOT / "src-tauri" / "gen" / "android" / "app" / "src" / "main" / "res" / "raw"
 TARGET_DB = -15.0  # loudest 400 ms, roughly matched across sounds
 PEAK = 0.89  # -1 dBFS, headroom for the volume slider and resampling
 
@@ -178,12 +181,13 @@ def render(name, x, trim_db):
     # Sharp clicks would hit the ceiling long before they sound as loud as
     # the rest: let them go up to 4 dB further and round off their peaks.
     x = soft_limit(x * min(gain, 1.6 * PEAK / np.max(np.abs(x))), PEAK)
-    OUT.mkdir(parents=True, exist_ok=True)
-    with wave.open(str(OUT / f"{name}.wav"), "wb") as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(RATE)
-        w.writeframes(np.round(x * 32767).astype("<i2").tobytes())
+    for out in (OUT, ANDROID_RAW):
+        out.mkdir(parents=True, exist_ok=True)
+        with wave.open(str(out / f"{name}.wav"), "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(RATE)
+            w.writeframes(np.round(x * 32767).astype("<i2").tobytes())
     print(f"wrote {name}.wav  {len(x) / RATE:.2f} s  peak {20 * np.log10(np.max(np.abs(x))):.1f} dBFS  loudness {loudness_db(x):.1f} dB")
 
 

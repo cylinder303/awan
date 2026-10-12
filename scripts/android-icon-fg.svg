@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Android adaptive icon foreground: the ring of icon.svg, scaled into the
+       area every launcher mask keeps visible. -->
+  <defs>
+    <linearGradient id="arc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#fbf5ee"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(512 512) scale(0.74) translate(-512 -512)">
+    <circle cx="512" cy="512" r="318" fill="none" stroke="#ffffff" stroke-opacity="0.28" stroke-width="128"/>
+    <path d="M512 194 A318 318 0 1 1 194 512" fill="none" stroke="url(#arc)" stroke-width="128" stroke-linecap="round"/>
+    <circle cx="512" cy="512" r="62" fill="#ffffff"/>
+  </g>
+</svg>

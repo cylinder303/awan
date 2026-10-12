@@ -232,6 +232,7 @@ name = "awan"
 version = "1.0.0"
 dependencies = [
  "chrono",
+ "libc",
  "rusqlite",
  "serde",
  "serde_json",
@@ -242,6 +243,7 @@ dependencies = [
  "tauri-plugin-global-shortcut",
  "tauri-plugin-notification",
  "tauri-plugin-single-instance",
+ "time",
  "windows-sys 0.61.2",
 ]
 

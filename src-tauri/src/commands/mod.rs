@@ -82,6 +82,7 @@ pub fn resolve_resume(app: AppHandle, resume: bool) -> TimerView {
 pub fn set_language(app: AppHandle, lang: String) {
     *lock(&app.state::<AppState>().lang) = Lang::parse(&lang);
     tray::refresh(&app);
+    crate::alerts::sync(&app);
 }
 
 /// A window has painted its first frame. Show it if it belongs to the
@@ -92,6 +93,7 @@ pub fn app_ready(app: AppHandle, window: WebviewWindow) {
     if !state.start_hidden && window.label() == display::current(&app).label() {
         window_ext::reveal(&window);
     }
+    crate::alerts::start(&app);
 }
 
 /// Switch between the full window and the mini timer.

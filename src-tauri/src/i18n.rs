@@ -19,6 +19,30 @@ impl Lang {
     }
 }
 
+/// Name of the Android notification channel for one alert sound, as shown
+/// in the phone's notification settings.
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+pub fn alert_channel(lang: Lang, sound: Option<&str>) -> String {
+    let label = match (lang, sound) {
+        (Lang::Ar, Some("drops")) => "قطرات ماء",
+        (Lang::Ar, Some("knock")) => "طرقات على الباب",
+        (Lang::Ar, Some("birds")) => "عصافير",
+        (Lang::Ar, Some("pebble")) => "حصاة",
+        (Lang::Ar, Some("wave")) => "موج البحر",
+        (Lang::Ar, _) => "بلا صوت",
+        (Lang::En, Some("drops")) => "Water drops",
+        (Lang::En, Some("knock")) => "Door knock",
+        (Lang::En, Some("birds")) => "Birds",
+        (Lang::En, Some("pebble")) => "Pebble",
+        (Lang::En, Some("wave")) => "Sea wave",
+        (Lang::En, _) => "Silent",
+    };
+    match lang {
+        Lang::Ar => format!("نهاية الجلسة: {label}"),
+        Lang::En => format!("Session end: {label}"),
+    }
+}
+
 /// Notification title and body for a finished session.
 pub fn finished(lang: Lang, ended: Mode, next: Mode) -> (&'static str, &'static str) {
     let title = match (lang, ended) {
