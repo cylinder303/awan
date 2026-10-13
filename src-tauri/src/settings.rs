@@ -174,9 +174,97 @@ fn is_hex_color(s: &str) -> bool {
     s.len() == 7 && s.starts_with('#') && s[1..].bytes().all(|b| b.is_ascii_hexdigit())
 }
 
+/// The settings every linked device shares: the timer, goals, appearance,
+/// language and alert sound. Volume and everything about windows, startup
+/// and shortcuts stay with each device.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default, rename_all = "camelCase")]
+pub struct Shared {
+    pub focus_minutes: u32,
+    pub short_break_minutes: u32,
+    pub long_break_minutes: u32,
+    pub sessions_before_long: u32,
+    pub auto_start: bool,
+    pub sound: String,
+    pub theme: String,
+    pub custom_theme: CustomTheme,
+    pub mode_colors: bool,
+    pub language: String,
+    pub week_start: String,
+    pub weekly_goal_minutes: u32,
+    pub daily_goal_enabled: bool,
+    pub daily_goal_minutes: u32,
+}
+
+impl Default for Shared {
+    fn default() -> Self {
+        Settings::default().shared()
+    }
+}
+
+impl Settings {
+    pub fn shared(&self) -> Shared {
+        Shared {
+            focus_minutes: self.focus_minutes,
+            short_break_minutes: self.short_break_minutes,
+            long_break_minutes: self.long_break_minutes,
+            sessions_before_long: self.sessions_before_long,
+            auto_start: self.auto_start,
+            sound: self.sound.clone(),
+            theme: self.theme.clone(),
+            custom_theme: self.custom_theme.clone(),
+            mode_colors: self.mode_colors,
+            language: self.language.clone(),
+            week_start: self.week_start.clone(),
+            weekly_goal_minutes: self.weekly_goal_minutes,
+            daily_goal_enabled: self.daily_goal_enabled,
+            daily_goal_minutes: self.daily_goal_minutes,
+        }
+    }
+
+    /// These settings with the shared part taken from another device.
+    pub fn with_shared(self, s: Shared) -> Settings {
+        Settings {
+            focus_minutes: s.focus_minutes,
+            short_break_minutes: s.short_break_minutes,
+            long_break_minutes: s.long_break_minutes,
+            sessions_before_long: s.sessions_before_long,
+            auto_start: s.auto_start,
+            sound: s.sound,
+            theme: s.theme,
+            custom_theme: s.custom_theme,
+            mode_colors: s.mode_colors,
+            language: s.language,
+            week_start: s.week_start,
+            weekly_goal_minutes: s.weekly_goal_minutes,
+            daily_goal_enabled: s.daily_goal_enabled,
+            daily_goal_minutes: s.daily_goal_minutes,
+            ..self
+        }
+        .sanitized()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn shared_part_leaves_device_settings_alone() {
+        let phone = Settings { volume: 40, close_action: "quit".into(), global_shortcut: String::new(), ..Settings::default() };
+        let pc = Settings { focus_minutes: 50, theme: "dark".into(), language: "ar".into(), volume: 90, ..Settings::default() };
+        let merged = phone.clone().with_shared(pc.shared());
+        assert_eq!((merged.focus_minutes, merged.theme.as_str(), merged.language.as_str()), (50, "dark", "ar"));
+        assert_eq!((merged.volume, merged.close_action.as_str(), merged.global_shortcut.as_str()), (40, "quit", ""));
+        assert_eq!(merged.shared(), pc.shared());
+    }
+
+    #[test]
+    fn shared_values_from_another_device_are_checked() {
+        let bad = Shared { focus_minutes: 9999, sound: "siren".into(), ..Shared::default() };
+        let s = Settings::default().with_shared(bad);
+        assert_eq!((s.focus_minutes, s.sound.as_str()), (180, sound::DEFAULT_SOUND));
+    }
 
     #[test]
     fn defaults_are_valid() {

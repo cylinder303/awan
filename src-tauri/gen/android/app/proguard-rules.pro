@@ -20,6 +20,6 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 # Methods the page calls through addJavascriptInterface (MainActivity).
--keepclassmembers class io.github.cylinder303.awan.MainActivity$InsetsBridge {
+-keepclassmembers class io.github.cylinder303.awan.MainActivity$Bridge {
     @android.webkit.JavascriptInterface <methods>;
 }

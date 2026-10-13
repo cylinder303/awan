@@ -13,17 +13,22 @@ import { toast } from "../components/toast.js";
 import { dayKey } from "../dates.js";
 import { segmented, stepper, toggle } from "../components/controls.js";
 import { isMobile } from "../platform.js";
+import { el, row, section, stackedRow } from "../components/layout.js";
+import { syncSection } from "./sync-section.js";
 
 let soundIds = null;
 
 export function mount(root) {
   let controls = [];
   let unsubscribe = () => {};
+  let sync = null;
 
   async function render() {
     soundIds ??= await sounds.list();
     const scroll = root.scrollTop;
     unsubscribe();
+    sync?.dispose();
+    sync = syncSection();
     controls = [];
     root.innerHTML = "";
     root.append(
@@ -60,6 +65,7 @@ export function mount(root) {
               stackedRow(t("shortcuts.global"), globalShortcutEditor(), t("shortcuts.global_hint")),
             ]),
           ]),
+      sync.el,
       section(t("data.title"), [
         row(t("data.backup"), actionButton(icons.download, t("data.backup_action"), backup), t("data.backup_hint")),
         row(t("data.restore"), actionButton(icons.upload, t("data.restore_action"), restore), t("data.restore_hint")),
@@ -414,6 +420,7 @@ export function mount(root) {
   const offLanguage = onLanguageChange(render);
   return () => {
     unsubscribe();
+    sync?.dispose();
     offLanguage();
   };
 }
@@ -421,46 +428,3 @@ export function mount(root) {
 // ---------------------------------------------------------------- helpers
 
 const miniRing = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="var(--ring-track)" stroke-width="2.5"/><path d="M12 4a8 8 0 1 1-8 8" fill="none" stroke="var(--focus)" stroke-width="2.5" stroke-linecap="round"/></svg>`;
-
-function el(tag, className) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  return node;
-}
-
-function section(title, children, hint) {
-  const s = el("section", "settings-section");
-  const h = el("h2", "settings-section__title");
-  h.textContent = title;
-  const card = el("div", "card");
-  card.append(...children);
-  s.append(h, card);
-  if (hint) {
-    const p = el("p", "settings-section__hint");
-    p.textContent = hint;
-    s.append(p);
-  }
-  return s;
-}
-
-/** A row whose control sits below the label (for wide controls). */
-function stackedRow(label, control, hint) {
-  const r = row(label, control, hint);
-  r.classList.add("row--stacked");
-  return r;
-}
-
-function row(label, control, hint) {
-  const r = el("div", "row");
-  const text = el("div", "row__text");
-  const l = el("span", "row__label");
-  l.textContent = label;
-  text.append(l);
-  if (hint) {
-    const h = el("span", "row__hint");
-    h.textContent = hint;
-    text.append(h);
-  }
-  r.append(text, control);
-  return r;
-}

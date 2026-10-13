@@ -26,6 +26,38 @@ const MIGRATIONS: &[&str] = &[
         week_key     TEXT    PRIMARY KEY,
         goal_minutes INTEGER NOT NULL CHECK (goal_minutes > 0)
     );",
+    // 4: syncing between devices.
+    //  - uid names a session the same way on every device: its type and
+    //    start time (what backups were already matched by). Two sessions
+    //    sharing both get the row id appended, so existing rows stay.
+    //  - rev orders local changes, so a sync sends only what is new; src is
+    //    the device a row came from ('' = this one), so it is not sent back.
+    //  - deleted_sessions remembers deletions, so they reach other devices
+    //    and a deleted session does not come back from them.
+    //  - week_goals.updated_at lets the newest change to a week's goal win.
+    "ALTER TABLE sessions ADD COLUMN uid TEXT;
+    ALTER TABLE sessions ADD COLUMN rev INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE sessions ADD COLUMN src TEXT NOT NULL DEFAULT '';
+    UPDATE sessions SET uid =
+        (CASE mode WHEN 'focus' THEN 'f' WHEN 'short_break' THEN 's' ELSE 'l' END) || '-' || started_at;
+    UPDATE sessions SET uid = uid || '#' || id
+        WHERE id NOT IN (SELECT MIN(id) FROM sessions GROUP BY uid);
+    UPDATE sessions SET rev = id;
+    CREATE UNIQUE INDEX sessions_uid ON sessions (uid);
+    CREATE INDEX sessions_rev ON sessions (rev);
+    CREATE TABLE deleted_sessions (
+        uid        TEXT    PRIMARY KEY,
+        deleted_at INTEGER NOT NULL,
+        rev        INTEGER NOT NULL,
+        src        TEXT    NOT NULL DEFAULT ''
+    );
+    CREATE INDEX deleted_sessions_rev ON deleted_sessions (rev);
+    CREATE TABLE counters (
+        name  TEXT    PRIMARY KEY,
+        value INTEGER NOT NULL
+    );
+    INSERT INTO counters (name, value) VALUES ('rev', (SELECT COALESCE(MAX(id), 0) FROM sessions));
+    ALTER TABLE week_goals ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0;",
 ];
 
 pub fn run(conn: &mut Connection) -> Result<(), String> {

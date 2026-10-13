@@ -18,6 +18,7 @@ mod settings;
 #[cfg(desktop)]
 mod shortcuts;
 mod sound;
+mod sync;
 mod timer;
 #[cfg(desktop)]
 mod tray;
@@ -46,7 +47,7 @@ mod tray {
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Condvar, Mutex, MutexGuard};
 use std::time::Duration;
 
 use tauri::{AppHandle, Emitter, Manager, WindowEvent};
@@ -142,7 +143,6 @@ pub fn run() {
             commands::reset_settings,
             commands::list_sounds,
             commands::preview_sound,
-            commands::sound_wav,
             commands::history::list_sessions,
             commands::history::delete_session,
             commands::history::focus_totals,
@@ -152,6 +152,14 @@ pub fn run() {
             commands::history::import_backup,
             commands::history::week_goals,
             commands::history::first_session_at,
+            commands::sync::sync_info,
+            commands::sync::sync_pairing_start,
+            commands::sync::sync_pairing_stop,
+            commands::sync::sync_remove_device,
+            commands::sync::sync_find,
+            commands::sync::sync_pair,
+            commands::sync::sync_now,
+            commands::sync::sync_unlink,
         ])
         .build(tauri::generate_context!())
         .expect("failed to build Awan")
@@ -227,6 +235,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
     power::watch(app.handle().clone());
     spawn_ticker(app.handle().clone());
+    sync::app::start(app.handle());
     Ok(())
 }
 
@@ -286,6 +295,7 @@ where
     tray::update(app, &view);
     save_snapshot(app);
     alerts::sync(app);
+    wake_ticker();
     view
 }
 
@@ -296,6 +306,7 @@ fn handle_events(app: &AppHandle, events: Vec<Event>) {
         match event {
             Event::SessionEnded(record) => {
                 let _ = lock(&app.state::<AppState>().db).insert_session(&record);
+                sync::app::local_change();
                 if record.mode == Mode::Focus {
                     focus_ended.push(record);
                 }
@@ -355,12 +366,43 @@ pub(crate) fn reset_settings(app: &AppHandle) -> Settings {
 
 /// Validate, store and apply settings, then tell every window.
 pub(crate) fn commit_settings(app: &AppHandle, next: Settings) -> Settings {
+    commit_settings_at(app, next, None)
+}
+
+/// Take the shared settings from another device if they changed there more
+/// recently than here. Returns whether they were taken.
+pub(crate) fn adopt_shared_settings(app: &AppHandle, theirs: sync::wire::StampedSettings) -> bool {
+    let state = app.state::<AppState>();
+    let ours = lock(&state.db).get::<i64>(sync::app::SHARED_AT_KEY).ok().flatten().unwrap_or(0);
+    if theirs.changed_at <= ours {
+        return false;
+    }
+    let current = lock(&state.settings).clone();
+    if current.shared() == theirs.values {
+        // Same values: only adopt the date, so they are not compared again.
+        let _ = lock(&state.db).set(sync::app::SHARED_AT_KEY, &theirs.changed_at);
+        return false;
+    }
+    commit_settings_at(app, current.with_shared(theirs.values), Some(theirs.changed_at));
+    true
+}
+
+/// `commit_settings`, dating a change to the shared settings `changed_at`
+/// when it came from another device, or now when it was made here.
+fn commit_settings_at(app: &AppHandle, next: Settings, changed_at: Option<i64>) -> Settings {
     let next = next.sanitized();
     let state = app.state::<AppState>();
+    let shared_changed = lock(&state.settings).shared() != next.shared();
     {
         let db = lock(&state.db);
         let _ = db.set(SETTINGS_KEY, &next);
+        if shared_changed {
+            let _ = db.set(sync::app::SHARED_AT_KEY, &changed_at.unwrap_or_else(clock::wall_ms));
+        }
         remember_week_goal(&db, &next);
+    }
+    if shared_changed && changed_at.is_none() {
+        sync::app::local_change();
     }
     *lock(&state.settings) = next.clone();
     apply(app, |engine, _| {
@@ -410,7 +452,7 @@ fn on_close_requested(window: &Window, api: &CloseRequestApi) {
 /// they were measured against when it is changed later.
 fn remember_week_goal(db: &Db, settings: &Settings) {
     let p = goals::periods(clock::wall_ms(), &settings.week_start);
-    let _ = db.set_week_goal(&p.week_key, settings.weekly_goal_minutes);
+    let _ = db.set_week_goal(&p.week_key, settings.weekly_goal_minutes, clock::wall_ms());
 }
 
 /// Notify when a just-recorded focus session completes today's or this week's goal.
@@ -455,8 +497,30 @@ fn save_snapshot(app: &AppHandle) {
     let _ = lock(&state.db).set(SNAPSHOT_KEY, &snap);
 }
 
+/// Set when something changed that the heartbeat should look at right away.
+static TICKER_WAKE: (Mutex<bool>, Condvar) = (Mutex::new(false), Condvar::new());
+
+/// How long the heartbeat sleeps when no session is counting down. Nothing
+/// needs it then except saving window positions on a computer.
+const IDLE_WAIT: Duration = if cfg!(desktop) { Duration::from_secs(5) } else { Duration::from_secs(60) };
+
+fn wake_ticker() {
+    let (woken, cv) = &TICKER_WAKE;
+    *lock(woken) = true;
+    cv.notify_one();
+}
+
+/// Sleep for `wait`, or until `wake_ticker` is called.
+fn ticker_sleep(wait: Duration) {
+    let (woken, cv) = &TICKER_WAKE;
+    let guard = lock(woken);
+    let (mut guard, _) = cv.wait_timeout_while(guard, wait, |w| !*w).unwrap_or_else(|e| e.into_inner());
+    *guard = false;
+}
+
 /// Native heartbeat: advances the engine, publishes a state update whenever
-/// the displayed second changes, and checkpoints running sessions.
+/// the displayed second changes, and checkpoints running sessions. While no
+/// session is counting down it sleeps until something changes.
 fn spawn_ticker(app: AppHandle) {
     std::thread::spawn(move || {
         let mut last_second = u64::MAX;
@@ -490,9 +554,13 @@ fn spawn_ticker(app: AppHandle) {
                 save_snapshot(&app);
             }
 
-            // Wake just after the displayed second changes.
-            let wait = if running { (view.remaining_ms % 1000) + 5 } else { 500 };
-            std::thread::sleep(Duration::from_millis(wait.clamp(20, 500)));
+            // Running: wake just after the displayed second changes.
+            let wait = if running {
+                Duration::from_millis(((view.remaining_ms % 1000) + 5).clamp(20, 500))
+            } else {
+                IDLE_WAIT
+            };
+            ticker_sleep(wait);
         }
     });
 }

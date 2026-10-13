@@ -15,12 +15,14 @@ pub struct WeekGoal {
 
 impl Db {
     /// Remember the goal in effect for a week (the latest value wins).
-    pub fn set_week_goal(&self, week_key: &str, goal_minutes: u32) -> Result<()> {
+    /// `now` dates the change, for syncing; an unchanged goal keeps its date.
+    pub fn set_week_goal(&self, week_key: &str, goal_minutes: u32, now: i64) -> Result<()> {
         self.conn
             .execute(
-                "INSERT INTO week_goals (week_key, goal_minutes) VALUES (?1, ?2)
-                 ON CONFLICT(week_key) DO UPDATE SET goal_minutes = excluded.goal_minutes",
-                params![week_key, goal_minutes.max(1)],
+                "INSERT INTO week_goals (week_key, goal_minutes, updated_at) VALUES (?1, ?2, ?3)
+                 ON CONFLICT(week_key) DO UPDATE SET goal_minutes = excluded.goal_minutes, updated_at = excluded.updated_at
+                 WHERE goal_minutes <> excluded.goal_minutes",
+                params![week_key, goal_minutes.max(1), now],
             )
             .map_err(|e| e.to_string())?;
         Ok(())
@@ -65,9 +67,9 @@ mod tests {
     #[test]
     fn latest_goal_for_a_week_wins_and_merge_keeps_existing() {
         let db = Db::open_in_memory().unwrap();
-        db.set_week_goal("2026-10-03", 1200).unwrap();
-        db.set_week_goal("2026-10-03", 900).unwrap();
-        db.set_week_goal("2026-09-26", 600).unwrap();
+        db.set_week_goal("2026-10-03", 1200, 1).unwrap();
+        db.set_week_goal("2026-10-03", 900, 2).unwrap();
+        db.set_week_goal("2026-09-26", 600, 3).unwrap();
         db.merge_week_goals(&[
             WeekGoal { week_key: "2026-10-03".into(), goal_minutes: 60 },
             WeekGoal { week_key: "2026-09-19".into(), goal_minutes: 300 },

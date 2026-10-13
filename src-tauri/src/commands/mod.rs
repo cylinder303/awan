@@ -1,6 +1,7 @@
 //! Commands invoked from the web UI.
 
 pub mod history;
+pub mod sync;
 
 use std::sync::atomic::Ordering;
 
@@ -163,10 +164,4 @@ pub fn list_sounds() -> Vec<&'static str> {
 #[tauri::command]
 pub fn preview_sound(id: String, volume: u32) {
     sound::play(&id, volume.min(100) as f32 / 100.0);
-}
-
-/// A sound's WAV bytes, for pages that play the preview themselves (phones).
-#[tauri::command]
-pub fn sound_wav(id: String, volume: u32) -> tauri::ipc::Response {
-    tauri::ipc::Response::new(sound::wav(&id, volume.min(100) as f32 / 100.0))
 }

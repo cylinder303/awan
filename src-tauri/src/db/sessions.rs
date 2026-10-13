@@ -1,6 +1,6 @@
 //! Session history queries.
 
-use rusqlite::{params, Row};
+use rusqlite::{params, OptionalExtension, Row};
 use serde::{Deserialize, Serialize};
 
 use super::{Db, Result};
@@ -21,7 +21,17 @@ pub struct Session {
     pub completed: bool,
 }
 
-fn mode_str(mode: Mode) -> &'static str {
+/// The id a session has on every device: its type and start time.
+pub fn session_uid(mode: Mode, started_at: i64) -> String {
+    let kind = match mode {
+        Mode::Focus => 'f',
+        Mode::ShortBreak => 's',
+        Mode::LongBreak => 'l',
+    };
+    format!("{kind}-{started_at}")
+}
+
+pub(super) fn mode_str(mode: Mode) -> &'static str {
     match mode {
         Mode::Focus => "focus",
         Mode::ShortBreak => "short_break",
@@ -29,7 +39,7 @@ fn mode_str(mode: Mode) -> &'static str {
     }
 }
 
-fn parse_mode(s: &str) -> Mode {
+pub(super) fn parse_mode(s: &str) -> Mode {
     match s {
         "short_break" => Mode::ShortBreak,
         "long_break" => Mode::LongBreak,
@@ -53,14 +63,18 @@ const COLUMNS: &str = "id, mode, started_at, ended_at, duration_ms, task, comple
 
 impl Db {
     pub fn insert_session(&self, r: &SessionRecord) -> Result<i64> {
+        let uid = session_uid(r.mode, r.started_at);
+        let rev = Self::next_rev(&self.conn).map_err(|e| e.to_string())?;
         self.conn
             .execute(
-                "INSERT INTO sessions (mode, started_at, ended_at, duration_ms, task, completed)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                params![mode_str(r.mode), r.started_at, r.ended_at, r.duration_ms as i64, r.task, r.completed],
+                "INSERT OR IGNORE INTO sessions (mode, started_at, ended_at, duration_ms, task, completed, uid, rev)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                params![mode_str(r.mode), r.started_at, r.ended_at, r.duration_ms as i64, r.task, r.completed, uid, rev],
             )
             .map_err(|e| e.to_string())?;
-        Ok(self.conn.last_insert_rowid())
+        self.conn
+            .query_row("SELECT id FROM sessions WHERE uid = ?1", params![uid], |r| r.get(0))
+            .map_err(|e| e.to_string())
     }
 
     /// Newest sessions first, older than `before` (UTC ms) when given.
@@ -84,12 +98,24 @@ impl Db {
         rows.collect::<rusqlite::Result<_>>().map_err(|e| e.to_string())
     }
 
-    pub fn delete_session(&self, id: i64) -> Result<bool> {
-        let n = self
-            .conn
-            .execute("DELETE FROM sessions WHERE id = ?1", params![id])
+    /// Delete a session and remember the deletion for other devices.
+    pub fn delete_session(&mut self, id: i64, now: i64) -> Result<bool> {
+        let tx = self.conn.transaction().map_err(|e| e.to_string())?;
+        let uid: Option<String> = tx
+            .query_row("SELECT uid FROM sessions WHERE id = ?1", params![id], |r| r.get(0))
+            .optional()
             .map_err(|e| e.to_string())?;
-        Ok(n > 0)
+        let Some(uid) = uid else { return Ok(false) };
+        tx.execute("DELETE FROM sessions WHERE id = ?1", params![id]).map_err(|e| e.to_string())?;
+        let rev = Self::next_rev(&tx).map_err(|e| e.to_string())?;
+        tx.execute(
+            "INSERT INTO deleted_sessions (uid, deleted_at, rev, src) VALUES (?1, ?2, ?3, '')
+             ON CONFLICT(uid) DO UPDATE SET deleted_at = excluded.deleted_at, rev = excluded.rev, src = ''",
+            params![uid, now, rev],
+        )
+        .map_err(|e| e.to_string())?;
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(true)
     }
 
     /// Total focus time (ms) for each [from, to) range of start times.
@@ -126,29 +152,42 @@ impl Db {
     }
 
     /// Add sessions from a backup, skipping ones already present
-    /// (same start time and type). Returns how many were added.
+    /// (same start time and type). Restoring a backup brings back sessions
+    /// deleted since. Returns how many were added.
     pub fn merge_sessions(&mut self, sessions: &[Session]) -> Result<usize> {
         let tx = self.conn.transaction().map_err(|e| e.to_string())?;
         let mut added = 0;
         {
             let mut exists = tx
-                .prepare("SELECT 1 FROM sessions WHERE started_at = ?1 AND mode = ?2 LIMIT 1")
+                .prepare("SELECT 1 FROM sessions WHERE uid = ?1")
                 .map_err(|e| e.to_string())?;
             let mut insert = tx
                 .prepare(
-                    "INSERT INTO sessions (mode, started_at, ended_at, duration_ms, task, completed)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    "INSERT INTO sessions (mode, started_at, ended_at, duration_ms, task, completed, uid, rev)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
                 )
                 .map_err(|e| e.to_string())?;
+            let mut undelete = tx.prepare("DELETE FROM deleted_sessions WHERE uid = ?1").map_err(|e| e.to_string())?;
             for s in sessions {
-                let mode = mode_str(s.mode);
-                if exists.exists(params![s.started_at, mode]).map_err(|e| e.to_string())? {
+                let uid = session_uid(s.mode, s.started_at);
+                if exists.exists(params![uid]).map_err(|e| e.to_string())? {
                     continue;
                 }
                 let task: String = s.task.chars().take(120).collect();
+                let rev = Self::next_rev(&tx).map_err(|e| e.to_string())?;
                 insert
-                    .execute(params![mode, s.started_at, s.ended_at.max(s.started_at), s.duration_ms as i64, task, s.completed])
+                    .execute(params![
+                        mode_str(s.mode),
+                        s.started_at,
+                        s.ended_at.max(s.started_at),
+                        s.duration_ms as i64,
+                        task,
+                        s.completed,
+                        uid,
+                        rev
+                    ])
                     .map_err(|e| e.to_string())?;
+                undelete.execute(params![uid]).map_err(|e| e.to_string())?;
                 added += 1;
             }
         }
@@ -176,7 +215,7 @@ mod tests {
 
     #[test]
     fn insert_list_and_delete() {
-        let db = Db::open_in_memory().unwrap();
+        let mut db = Db::open_in_memory().unwrap();
         let a = db.insert_session(&record(Mode::Focus, 1_000, 25, "A", true)).unwrap();
         db.insert_session(&record(Mode::ShortBreak, 2_000, 5, "", true)).unwrap();
         db.insert_session(&record(Mode::Focus, 3_000, 12, "B", false)).unwrap();
@@ -191,8 +230,8 @@ mod tests {
         assert_eq!(older.len(), 1);
         assert_eq!(older[0].task, "A");
 
-        assert!(db.delete_session(a).unwrap());
-        assert!(!db.delete_session(a).unwrap());
+        assert!(db.delete_session(a, 5_000).unwrap());
+        assert!(!db.delete_session(a, 5_000).unwrap());
         assert_eq!(db.all_sessions().unwrap().len(), 2);
     }
 

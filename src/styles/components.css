@@ -1110,6 +1110,100 @@
   }
 }
 
+/* ------------------------------------------------------------------ sync */
+
+.row--error .row__hint {
+  color: #d93b3b;
+}
+
+/* A row's button keeps its words on one line; the text beside it wraps. */
+.row > .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.pair {
+  display: grid;
+  gap: 10px;
+  margin: -6px 0 18px;
+}
+
+.pair__code {
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-align: center;
+  user-select: text;
+}
+
+.dialog .dialog-note,
+.dialog .pair__status,
+.dialog .pair__error {
+  margin: 0;
+  font-size: 12px;
+}
+
+.dialog .pair__error {
+  color: #d93b3b;
+}
+
+.dialog .pair__error:empty {
+  display: none;
+}
+
+.pair__status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pair__choice {
+  max-width: none;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+}
+
+.field[hidden] {
+  display: none;
+}
+
+.field__label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  user-select: text;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.link-btn {
+  justify-self: start;
+  padding: 0;
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: underline;
+}
+
 /* ------------------------------------------------------------------ toast */
 
 .toast {

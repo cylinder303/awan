@@ -1,6 +1,6 @@
 // Entry point for the main window.
 
-import { app, timer } from "./api.js";
+import { app, syncApi, timer } from "./api.js";
 import { store } from "./store.js";
 import { settings } from "./settings.js";
 import { detectLanguage, setLanguage, t } from "./i18n.js";
@@ -69,6 +69,13 @@ async function boot() {
   requestAnimationFrame(() => app.ready());
 
   if (initial.pendingResume) askResume(initial.view);
+
+  // A phone syncs with its computer whenever the app comes back to the front.
+  if (isMobile) {
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) syncApi.now();
+    });
+  }
 }
 
 boot();

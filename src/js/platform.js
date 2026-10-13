@@ -3,6 +3,32 @@
 
 export const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
 
+/** The phone's name, for the computer's list of linked phones. */
+export function deviceName() {
+  try {
+    return window.AwanAndroid?.deviceName() || "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Android 17 asks before an app reaches devices on the local network.
+ * Resolves true once allowed (at once on older phones and on computers).
+ */
+export function ensureLocalNetwork() {
+  const bridge = window.AwanAndroid;
+  if (!bridge?.localNetwork || bridge.localNetwork() === "granted") return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const done = () => {
+      window.removeEventListener("awan:local-network", done);
+      resolve(bridge.localNetwork() === "granted");
+    };
+    window.addEventListener("awan:local-network", done);
+    bridge.requestLocalNetwork();
+  });
+}
+
 /** Mark the page with its platform and keep the system insets current. */
 export function initPlatform() {
   const root = document.documentElement;

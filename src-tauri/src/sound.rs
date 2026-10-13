@@ -1,10 +1,15 @@
 //! Alert sounds, played natively so they work while the window is hidden.
-//! Sounds are embedded in the executable (fully offline).
+//! On a computer they are embedded in the executable (fully offline). On
+//! Android the app's resources hold them (res/raw), where the system plays
+//! them with the notification, so the executable carries no second copy.
 
 pub const DEFAULT_SOUND: &str = "drops";
 
 /// Natural sounds only, no instruments or melodies (see scripts/gen_sounds.py).
-const SOUNDS: &[(&str, &[u8])] = &[
+const IDS: [&str; 5] = ["drops", "knock", "birds", "pebble", "wave"];
+
+#[cfg(not(target_os = "android"))]
+const SOUNDS: [(&str, &[u8]); 5] = [
     ("drops", include_bytes!("../sounds/drops.wav")),
     ("knock", include_bytes!("../sounds/knock.wav")),
     ("birds", include_bytes!("../sounds/birds.wav")),
@@ -13,33 +18,33 @@ const SOUNDS: &[(&str, &[u8])] = &[
 ];
 
 pub fn ids() -> Vec<&'static str> {
-    SOUNDS.iter().map(|(id, _)| *id).collect()
+    IDS.to_vec()
 }
 
 pub fn exists(id: &str) -> bool {
-    SOUNDS.iter().any(|(name, _)| *name == id)
+    IDS.contains(&id)
 }
 
 /// A bundled sound by id; unknown ids fall back to the default.
+#[cfg(not(target_os = "android"))]
 fn bytes(id: &str) -> &'static [u8] {
     SOUNDS.iter().find(|(name, _)| *name == id).unwrap_or(&SOUNDS[0]).1
 }
 
-/// Play a bundled sound at `volume` (0.0..=1.0).
+/// Play a bundled sound at `volume` (0.0..=1.0). On Android the page plays
+/// previews through the app's own player (MainActivity.kt) instead.
 pub fn play(id: &str, volume: f32) {
     if volume <= 0.0 {
         return;
     }
+    #[cfg(not(target_os = "android"))]
     platform::play(scale_wav(bytes(id), volume.min(1.0)));
-}
-
-/// A bundled sound as WAV bytes at `volume`, for the page to play itself
-/// (phones, where the app has no native player of its own).
-pub fn wav(id: &str, volume: f32) -> Vec<u8> {
-    scale_wav(bytes(id), volume.clamp(0.0, 1.0))
+    #[cfg(target_os = "android")]
+    let _ = id;
 }
 
 /// Return a copy of a 16-bit PCM WAV with every sample scaled by `volume`.
+#[cfg_attr(target_os = "android", allow(dead_code))]
 fn scale_wav(wav: &[u8], volume: f32) -> Vec<u8> {
     let mut out = wav.to_vec();
     if let Some((start, len)) = data_chunk(wav) {
@@ -53,6 +58,7 @@ fn scale_wav(wav: &[u8], volume: f32) -> Vec<u8> {
 }
 
 /// Locate the `data` chunk of a RIFF/WAVE file: (offset, length).
+#[cfg_attr(target_os = "android", allow(dead_code))]
 fn data_chunk(wav: &[u8]) -> Option<(usize, usize)> {
     if wav.len() < 12 || &wav[0..4] != b"RIFF" || &wav[8..12] != b"WAVE" {
         return None;
@@ -95,7 +101,7 @@ mod platform {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "android")))]
 mod platform {
     /// Development builds on other systems stay silent.
     pub fn play(_wav: Vec<u8>) {}
@@ -104,6 +110,11 @@ mod platform {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ids_match_the_embedded_sounds() {
+        assert_eq!(IDS.to_vec(), SOUNDS.iter().map(|(id, _)| *id).collect::<Vec<_>>());
+    }
 
     #[test]
     fn bundled_sounds_are_valid_wav() {

@@ -5,9 +5,11 @@
 mod goals;
 mod migrations;
 mod sessions;
+mod sync;
 
 pub use goals::WeekGoal;
 pub use sessions::Session;
+pub use sync::{StampedGoal, SyncSession, Tombstone};
 
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{de::DeserializeOwned, Serialize};
@@ -40,6 +42,11 @@ impl Db {
         let mut db = Self { conn };
         migrations::run(&mut db.conn)?;
         Ok(db)
+    }
+
+    /// The next number in the local change order (see migration 4).
+    fn next_rev(conn: &Connection) -> rusqlite::Result<i64> {
+        conn.query_row("UPDATE counters SET value = value + 1 WHERE name = 'rev' RETURNING value", [], |r| r.get(0))
     }
 
     /// Read a JSON value stored under `key`.

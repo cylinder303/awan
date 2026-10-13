@@ -14,7 +14,8 @@ pub fn list_sessions(state: State<'_, AppState>, before: Option<i64>, limit: u32
 
 #[tauri::command]
 pub fn delete_session(app: AppHandle, id: i64) -> Result<bool, String> {
-    let deleted = lock(&app.state::<AppState>().db).delete_session(id)?;
+    let deleted = lock(&app.state::<AppState>().db).delete_session(id, clock::wall_ms())?;
+    crate::sync::app::local_change();
     let _ = app.emit(HISTORY_EVENT, ());
     Ok(deleted)
 }
@@ -99,6 +100,7 @@ pub async fn import_backup(app: AppHandle) -> Result<Option<ImportSummary>, Stri
         added
     };
     save_settings(&app, backup.settings);
+    crate::sync::app::local_change();
     let _ = app.emit(HISTORY_EVENT, ());
     Ok(Some(ImportSummary { added, skipped: backup.sessions.len() - added }))
 }
