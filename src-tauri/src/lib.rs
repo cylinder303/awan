@@ -106,6 +106,9 @@ pub fn run() {
     let builder = builder
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init());
+    // Phones: reads and writes the documents chosen in the file dialogs.
+    #[cfg(mobile)]
+    let builder = builder.plugin(tauri_plugin_fs::init());
     #[cfg(desktop)]
     let builder = builder
         .plugin(shortcuts::plugin())
@@ -139,6 +142,7 @@ pub fn run() {
             commands::reset_settings,
             commands::list_sounds,
             commands::preview_sound,
+            commands::sound_wav,
             commands::history::list_sessions,
             commands::history::delete_session,
             commands::history::focus_totals,

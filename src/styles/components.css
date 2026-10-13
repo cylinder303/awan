@@ -52,9 +52,11 @@
   height: 10px;
 }
 
-.tb-btn:hover {
-  background: var(--surface-2);
-  color: var(--text);
+@media (hover: hover) {
+  .tb-btn:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
 }
 
 .tb-btn:active {
@@ -71,9 +73,11 @@
   color: var(--accent);
 }
 
-.tb-btn--close:hover {
-  background: #e81123;
-  color: #ffffff;
+@media (hover: hover) {
+  .tb-btn--close:hover {
+    background: #e81123;
+    color: #ffffff;
+  }
 }
 
 .tb-btn--close:active {
@@ -106,9 +110,11 @@
   height: 18px;
 }
 
-.nav__item:hover {
-  color: var(--text);
-  background: var(--surface-2);
+@media (hover: hover) {
+  .nav__item:hover {
+    color: var(--text);
+    background: var(--surface-2);
+  }
 }
 
 .nav__item[aria-current="page"] {
@@ -143,8 +149,10 @@
   transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease);
 }
 
-.modes__item:hover {
-  color: var(--text);
+@media (hover: hover) {
+  .modes__item:hover {
+    color: var(--text);
+  }
 }
 
 .modes__item[aria-selected="true"] {
@@ -235,8 +243,10 @@
   opacity: 0.8;
 }
 
-.task:hover {
-  border-bottom-color: var(--border);
+@media (hover: hover) {
+  .task:hover {
+    border-bottom-color: var(--border);
+  }
 }
 
 .task:focus {
@@ -266,9 +276,11 @@
   height: 18px;
 }
 
-.icon-btn:hover {
-  background: var(--surface-2);
-  color: var(--text);
+@media (hover: hover) {
+  .icon-btn:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
 }
 
 .icon-btn:active {
@@ -293,8 +305,10 @@
   height: 22px;
 }
 
-.play-btn:hover {
-  transform: scale(1.04);
+@media (hover: hover) {
+  .play-btn:hover {
+    transform: scale(1.04);
+  }
 }
 
 .play-btn:active {
@@ -391,8 +405,10 @@
   transition: background-color var(--fast) var(--ease), filter var(--fast) var(--ease);
 }
 
-.btn:hover {
-  filter: brightness(0.96);
+@media (hover: hover) {
+  .btn:hover {
+    filter: brightness(0.96);
+  }
 }
 
 .btn--primary {
@@ -492,9 +508,11 @@
   height: 14px;
 }
 
-.stepper__btn:hover {
-  background: var(--surface-2);
-  color: var(--text);
+@media (hover: hover) {
+  .stepper__btn:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
 }
 
 .stepper__input {
@@ -574,8 +592,10 @@
   transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease);
 }
 
-.segmented__item:hover {
-  color: var(--text);
+@media (hover: hover) {
+  .segmented__item:hover {
+    color: var(--text);
+  }
 }
 
 .segmented__item[aria-checked="true"] {
@@ -674,8 +694,10 @@
   height: 26px;
 }
 
-.theme-tile:hover .theme-tile__preview {
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .theme-tile:hover .theme-tile__preview {
+    transform: translateY(-1px);
+  }
 }
 
 .theme-tile[aria-checked="true"] {
@@ -743,10 +765,12 @@
   box-shadow: inset 0 0 0 1px var(--border);
 }
 
-.btn--quiet:hover {
-  color: var(--text);
-  background: var(--surface-2);
-  filter: none;
+@media (hover: hover) {
+  .btn--quiet:hover {
+    color: var(--text);
+    background: var(--surface-2);
+    filter: none;
+  }
 }
 
 .reset-btn {
@@ -847,8 +871,10 @@
   outline-offset: -2px;
 }
 
-.bars__col:hover {
-  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+@media (hover: hover) {
+  .bars__col:hover {
+    background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+  }
 }
 
 .bars__track {
@@ -1011,13 +1037,27 @@
   transition: opacity var(--fast) var(--ease), background-color var(--fast) var(--ease);
 }
 
-.session:hover .session__delete,
 .session__delete:focus-visible {
   opacity: 1;
 }
 
-.session__delete:hover {
-  color: #d93b3b;
+/* Touch screens have no hover to reveal it: keep it in view, quietly. */
+@media (hover: none) {
+  .session__delete {
+    opacity: 0.55;
+  }
+}
+
+@media (hover: hover) {
+  .session:hover .session__delete {
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) {
+  .session__delete:hover {
+    color: #d93b3b;
+  }
 }
 
 .load-more {
@@ -1060,9 +1100,14 @@
   white-space: nowrap;
 }
 
-.suggest__item:hover,
 .suggest__item[aria-selected="true"] {
   background: var(--surface-2);
+}
+
+@media (hover: hover) {
+  .suggest__item:hover {
+    background: var(--surface-2);
+  }
 }
 
 /* ------------------------------------------------------------------ toast */

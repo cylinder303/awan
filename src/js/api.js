@@ -1,6 +1,8 @@
 // Thin wrapper over the Tauri bridge. Everything native goes through here,
 // so the rest of the UI never touches window.__TAURI__ directly.
 
+import { isMobile } from "./platform.js";
+
 const tauri = window.__TAURI__;
 const invoke = (cmd, args) => tauri.core.invoke(cmd, args);
 
@@ -54,9 +56,26 @@ export const history = {
   onChanged: (fn) => listen("history://changed", fn),
 };
 
+// Phones have no native player: the page plays the preview itself.
+let audio = null;
+let playing = null;
+
+async function playInPage(id, volume) {
+  if (volume <= 0) return;
+  audio ??= new AudioContext();
+  if (audio.state === "suspended") await audio.resume();
+  const bytes = await invoke("sound_wav", { id, volume });
+  const buffer = await audio.decodeAudioData(bytes);
+  playing?.stop();
+  playing = audio.createBufferSource();
+  playing.buffer = buffer;
+  playing.connect(audio.destination);
+  playing.start();
+}
+
 export const sounds = {
   list: () => invoke("list_sounds"),
-  preview: (id, volume) => invoke("preview_sound", { id, volume }),
+  preview: (id, volume) => (isMobile ? playInPage(id, volume) : invoke("preview_sound", { id, volume })),
 };
 
 export const app = {

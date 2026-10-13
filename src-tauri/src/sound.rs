@@ -20,19 +20,23 @@ pub fn exists(id: &str) -> bool {
     SOUNDS.iter().any(|(name, _)| *name == id)
 }
 
-/// Play a bundled sound at `volume` (0.0..=1.0). Unknown ids fall back to the default.
+/// A bundled sound by id; unknown ids fall back to the default.
+fn bytes(id: &str) -> &'static [u8] {
+    SOUNDS.iter().find(|(name, _)| *name == id).unwrap_or(&SOUNDS[0]).1
+}
+
+/// Play a bundled sound at `volume` (0.0..=1.0).
 pub fn play(id: &str, volume: f32) {
     if volume <= 0.0 {
         return;
     }
-    let bytes = SOUNDS
-        .iter()
-        .find(|(name, _)| *name == id)
-        .or_else(|| SOUNDS.first())
-        .map(|(_, b)| *b);
-    if let Some(bytes) = bytes {
-        platform::play(scale_wav(bytes, volume.min(1.0)));
-    }
+    platform::play(scale_wav(bytes(id), volume.min(1.0)));
+}
+
+/// A bundled sound as WAV bytes at `volume`, for the page to play itself
+/// (phones, where the app has no native player of its own).
+pub fn wav(id: &str, volume: f32) -> Vec<u8> {
+    scale_wav(bytes(id), volume.clamp(0.0, 1.0))
 }
 
 /// Return a copy of a 16-bit PCM WAV with every sample scaled by `volume`.

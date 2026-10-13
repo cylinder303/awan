@@ -51,6 +51,8 @@ export default {
   "settings.alert_sound": "صوت التنبيه",
   "settings.preview": "استماع",
   "settings.volume": "مستوى الصوت",
+  "settings.alert_on": "صوت التنبيه",
+  "settings.alert_on_hint": "يرن بمستوى صوت الإشعارات في جوالك",
   "settings.mute": "كتم الصوت",
   "settings.unmute": "إلغاء الكتم",
   "settings.muted": "مكتوم",

@@ -1,7 +1,5 @@
 //! History, statistics, CSV export and backup commands.
 
-use std::path::PathBuf;
-
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::{DialogExt, FilePath};
 
@@ -47,11 +45,11 @@ pub fn recent_tasks(state: State<'_, AppState>, limit: u32) -> Result<Vec<String
 /// in the user's time zone and language). Returns false if cancelled.
 #[tauri::command]
 pub async fn export_csv(app: AppHandle, contents: String, file_name: String) -> Result<bool, String> {
-    let Some(path) = save_dialog(&app, &file_name, "CSV", "csv") else {
+    let Some(file) = save_dialog(&app, &file_name, "CSV", "csv") else {
         return Ok(false);
     };
     // A byte-order mark lets Excel open Arabic text correctly.
-    std::fs::write(path, format!("\u{feff}{contents}")).map_err(|e| e.to_string())?;
+    write_file(&app, file, "csv", format!("\u{feff}{contents}").as_bytes())?;
     Ok(true)
 }
 
@@ -65,10 +63,10 @@ pub async fn export_backup(app: AppHandle, file_name: String) -> Result<bool, St
         backup.week_goals = db.week_goals()?;
         backup
     };
-    let Some(path) = save_dialog(&app, &file_name, "Awan backup", "json") else {
+    let Some(file) = save_dialog(&app, &file_name, "Awan backup", "json") else {
         return Ok(false);
     };
-    std::fs::write(path, backup.to_json()?).map_err(|e| e.to_string())?;
+    write_file(&app, file, "json", backup.to_json()?.as_bytes())?;
     Ok(true)
 }
 
@@ -76,15 +74,21 @@ pub async fn export_backup(app: AppHandle, file_name: String) -> Result<bool, St
 /// (sessions already present are skipped). Returns None if cancelled.
 #[tauri::command]
 pub async fn import_backup(app: AppHandle) -> Result<Option<ImportSummary>, String> {
-    let mut dialog = app.dialog().file().add_filter("Awan backup", &["json"]);
+    let mut dialog = app.dialog().file();
+    // Phones filter by file type, which a backup copied over from a computer
+    // (a download, a chat attachment) does not always carry: list every file
+    // there and let the backup check below reject the wrong ones.
     #[cfg(desktop)]
-    if let Some(window) = app.get_webview_window("main") {
-        dialog = dialog.set_parent(&window);
+    {
+        dialog = dialog.add_filter("Awan backup", &["json"]);
+        if let Some(window) = app.get_webview_window("main") {
+            dialog = dialog.set_parent(&window);
+        }
     }
-    let Some(path) = dialog.blocking_pick_file().and_then(to_path) else {
+    let Some(file) = dialog.blocking_pick_file() else {
         return Ok(None);
     };
-    let text = std::fs::read_to_string(path).map_err(|_| "unreadable".to_string())?;
+    let text = read_file(&app, file)?;
     let backup = Backup::from_json(&text)?;
 
     let state = app.state::<AppState>();
@@ -99,19 +103,43 @@ pub async fn import_backup(app: AppHandle) -> Result<Option<ImportSummary>, Stri
     Ok(Some(ImportSummary { added, skipped: backup.sessions.len() - added }))
 }
 
-fn save_dialog(app: &AppHandle, file_name: &str, filter: &str, ext: &str) -> Option<PathBuf> {
+fn save_dialog(app: &AppHandle, file_name: &str, filter: &str, ext: &str) -> Option<FilePath> {
     let mut dialog = app.dialog().file().set_file_name(file_name).add_filter(filter, &[ext]);
     #[cfg(desktop)]
     if let Some(window) = app.get_webview_window("main") {
         dialog = dialog.set_parent(&window);
     }
-    let mut path = dialog.blocking_save_file().and_then(to_path)?;
+    dialog.blocking_save_file()
+}
+
+/// Write a file chosen in a save dialog. On a phone the dialog hands back a
+/// document link (content://) rather than a path, opened through the system.
+fn write_file(app: &AppHandle, file: FilePath, ext: &str, contents: &[u8]) -> Result<(), String> {
+    #[cfg(mobile)]
+    if let FilePath::Url(_) = file {
+        use std::io::Write;
+        use tauri_plugin_fs::{FsExt, OpenOptions};
+        let mut options = OpenOptions::new();
+        options.read(false).write(true).truncate(true).create(true);
+        let mut out = app.fs().open(file, options).map_err(|e| e.to_string())?;
+        return out.write_all(contents).map_err(|e| e.to_string());
+    }
+    let _ = app;
+    let mut path = file.into_path().map_err(|e| e.to_string())?;
     if path.extension().is_none() {
         path.set_extension(ext);
     }
-    Some(path)
+    std::fs::write(path, contents).map_err(|e| e.to_string())
 }
 
-fn to_path(file: FilePath) -> Option<PathBuf> {
-    file.into_path().ok()
+/// Read a text file chosen in an open dialog (a path, or a document link on a phone).
+fn read_file(app: &AppHandle, file: FilePath) -> Result<String, String> {
+    #[cfg(mobile)]
+    if let FilePath::Url(_) = file {
+        use tauri_plugin_fs::FsExt;
+        return app.fs().read_to_string(file).map_err(|_| "unreadable".to_string());
+    }
+    let _ = app;
+    let path = file.into_path().map_err(|_| "unreadable".to_string())?;
+    std::fs::read_to_string(path).map_err(|_| "unreadable".to_string())
 }

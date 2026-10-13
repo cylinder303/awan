@@ -82,9 +82,14 @@ body {
   transition: opacity var(--fast) var(--ease);
 }
 
-.mini:hover .mini__actions,
 .mini:focus-within .mini__actions {
   opacity: 1;
+}
+
+@media (hover: hover) {
+  .mini:hover .mini__actions {
+    opacity: 1;
+  }
 }
 
 .mini__btn {
@@ -99,9 +104,11 @@ body {
   transition: color var(--fast) var(--ease), background-color var(--fast) var(--ease);
 }
 
-.mini__btn:hover {
-  color: var(--text);
-  background: var(--surface);
+@media (hover: hover) {
+  .mini__btn:hover {
+    color: var(--text);
+    background: var(--surface);
+  }
 }
 
 .mini__btn svg {

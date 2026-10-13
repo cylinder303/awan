@@ -12,6 +12,7 @@ import { openDialog } from "../components/dialog.js";
 import { toast } from "../components/toast.js";
 import { dayKey } from "../dates.js";
 import { segmented, stepper, toggle } from "../components/controls.js";
+import { isMobile } from "../platform.js";
 
 let soundIds = null;
 
@@ -33,22 +34,32 @@ export function mount(root) {
         row(t("settings.sessions_before_long"), numberControl("sessionsBeforeLong", 1, 12, t("unit.sessions"), t("settings.sessions_before_long"))),
         row(t("settings.auto_start"), switchControl("autoStart", t("settings.auto_start")), t("settings.auto_start_hint")),
       ], t("settings.timer_hint")),
-      section(t("settings.sound"), [row(t("settings.alert_sound"), soundPicker()), row(t("settings.volume"), volumeControl())]),
+      section(t("settings.sound"), [
+        row(t("settings.alert_sound"), soundPicker()),
+        isMobile
+          ? row(t("settings.alert_on"), alertSwitch(), t("settings.alert_on_hint"))
+          : row(t("settings.volume"), volumeControl()),
+      ]),
       section(t("settings.appearance"), [
         themePicker(),
         customThemeEditor(),
         row(t("settings.mode_colors"), switchControl("modeColors", t("settings.mode_colors")), t("settings.mode_colors_hint")),
       ]),
       section(t("settings.language"), [languageControl()]),
-      section(t("window.title"), [
-        closeActionControl(),
-        row(t("window.launch_at_startup"), startupSwitch(), t("window.launch_hint")),
-        row(t("window.mini_opacity"), opacityControl(), t("window.mini_opacity_hint")),
-      ]),
-      section(t("shortcuts.title"), [
-        ...LOCAL_SHORTCUTS.map((sc) => row(t(sc.action), keysEl(sc.key))),
-        stackedRow(t("shortcuts.global"), globalShortcutEditor(), t("shortcuts.global_hint")),
-      ]),
+      // Windows, startup and keyboard shortcuts belong to a computer.
+      ...(isMobile
+        ? []
+        : [
+            section(t("window.title"), [
+              closeActionControl(),
+              row(t("window.launch_at_startup"), startupSwitch(), t("window.launch_hint")),
+              row(t("window.mini_opacity"), opacityControl(), t("window.mini_opacity_hint")),
+            ]),
+            section(t("shortcuts.title"), [
+              ...LOCAL_SHORTCUTS.map((sc) => row(t(sc.action), keysEl(sc.key))),
+              stackedRow(t("shortcuts.global"), globalShortcutEditor(), t("shortcuts.global_hint")),
+            ]),
+          ]),
       section(t("data.title"), [
         row(t("data.backup"), actionButton(icons.download, t("data.backup_action"), backup), t("data.backup_hint")),
         row(t("data.restore"), actionButton(icons.upload, t("data.restore_action"), restore), t("data.restore_hint")),
@@ -89,12 +100,27 @@ export function mount(root) {
     play.setAttribute("aria-label", play.title);
     const preview = () => {
       const s = settings.get();
-      sounds.preview(s.sound, s.muted ? 0 : s.volume);
+      // A phone rings at its own notification volume, so preview at full.
+      sounds.preview(s.sound, s.muted ? 0 : isMobile ? 100 : s.volume);
     };
     play.addEventListener("click", preview);
     wrap.append(select, play);
     controls.push((s) => (select.value = s.sound));
     return wrap;
+  }
+
+  /** Phones: the alert rings at the phone's notification volume, so the
+   *  only choice here is whether it makes a sound at all. */
+  function alertSwitch() {
+    const c = toggle({
+      label: t("settings.alert_on"),
+      onChange: (on) => {
+        const s = settings.get();
+        settings.update(on && s.volume === 0 ? { muted: false, volume: 80 } : { muted: !on });
+      },
+    });
+    controls.push((s) => c.set(!s.muted && s.volume > 0));
+    return c.el;
   }
 
   function volumeControl() {

@@ -51,6 +51,8 @@ export default {
   "settings.alert_sound": "Alert sound",
   "settings.preview": "Preview",
   "settings.volume": "Volume",
+  "settings.alert_on": "Alert sound",
+  "settings.alert_on_hint": "Rings at your phone's notification volume",
   "settings.mute": "Mute",
   "settings.unmute": "Unmute",
   "settings.muted": "Muted",
