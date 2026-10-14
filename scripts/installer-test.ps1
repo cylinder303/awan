@@ -9,7 +9,11 @@ $failed = $false
 function Check([string] $name, [bool] $ok, [string] $detail = "") {
   $mark = if ($ok) { "PASS" } else { "FAIL" }
   Write-Host "$mark $name $(if ($detail) { "- $detail" })"
-  if (-not $ok) { $script:failed = $true }
+  if (-not $ok) {
+    $script:failed = $true
+    # In GitHub Actions a failure also becomes an annotation on the run page.
+    if ($env:GITHUB_ACTIONS) { Write-Host "::error title=Installer test::$name $detail" }
+  }
 }
 function Run([string] $exe, [string[]] $arguments, [int] $seconds = 180) {
   $p = Start-Process -FilePath $exe -ArgumentList $arguments -PassThru

@@ -34,9 +34,16 @@ app.stdout.on("data", (d) => log(`[app] ${d.toString().trim()}`));
 app.stderr.on("data", (d) => log(`[app:err] ${d.toString().trim()}`));
 
 let failed = false;
+// In GitHub Actions a failure also becomes an annotation on the run page.
+const annotate = (title, text) => {
+  if (process.env.GITHUB_ACTIONS) console.log(`::error title=${title}::${String(text).replace(/\r?\n/g, "%0A").slice(0, 3000)}`);
+};
 const check = (name, ok, detail = "") => {
   log(`${ok ? "PASS" : "FAIL"} ${name}${detail ? ` - ${detail}` : ""}`);
-  if (!ok) failed = true;
+  if (!ok) {
+    failed = true;
+    annotate(`Smoke test: ${name}`, detail || "failed");
+  }
 };
 
 try {
@@ -104,7 +111,8 @@ try {
 
     check("IPC answers get_settings", after.get_settings === "ok", after.get_settings);
     check("after reload: timer face rendered", after.time === "25:00", String(after.time));
-    check("no errors while booting", errors.filter((e) => !e.startsWith("warning")).length === 0);
+    const bootErrors = errors.filter((e) => !e.startsWith("warning"));
+    check("no errors while booting", bootErrors.length === 0, bootErrors.join("\n"));
   }
 
   const mini = pages.find((p) => p.url().endsWith("/mini.html"));
@@ -112,6 +120,7 @@ try {
   await browser.close().catch(() => {});
 } catch (e) {
   log(`ERROR ${e.stack || e}`);
+  annotate("Smoke test error", e.stack || e);
   failed = true;
 } finally {
   app.kill();
