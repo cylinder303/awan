@@ -110,9 +110,10 @@ jobs:
         run: |
           set -o pipefail
           if ! npx tauri android build --apk --target aarch64 --ci 2>&1 | tee "$RUNNER_TEMP/build.log"; then
-            # Put the compiler errors on the run page, not only in the log.
-            msg=$(grep -E -A8 '^error' "$RUNNER_TEMP/build.log" | head -n 120 | tr -d '\r' \
-              | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            # Put the errors on the run page, not only in the log: Rust
+            # ("error"), Kotlin ("e: ") and Gradle ("What went wrong").
+            msg=$( { grep -E -A6 '^(error|e: )|What went wrong' "$RUNNER_TEMP/build.log" || tail -n 40 "$RUNNER_TEMP/build.log"; } \
+              | head -n 150 | tr -d '\r' | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g' || true)
             echo "::error title=Android build failed::${msg:-see the build log}"
             exit 1
           fi
