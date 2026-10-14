@@ -1316,6 +1316,154 @@
   margin-bottom: 10px;
 }
 
+/* Streak: the count, the day map and rest-day chips. */
+.streak {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.streak__icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  transition: background-color var(--slow) var(--ease), color var(--slow) var(--ease);
+}
+
+.streak.is-active .streak__icon {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  color: var(--accent);
+}
+
+.streak__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.streak__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.streak__label,
+.streak__meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.streak__value {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.streak__value b {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.day-map {
+  padding: 12px 14px 10px;
+}
+
+.day-map__months,
+.day-map__grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 3px;
+}
+
+.day-map__grid {
+  grid-template-rows: repeat(7, auto);
+}
+
+.day-map__months {
+  height: 14px;
+  margin-bottom: 4px;
+}
+
+.day-map__month {
+  overflow: visible;
+  white-space: nowrap;
+  font-size: 10px;
+  line-height: 14px;
+  color: var(--text-muted);
+}
+
+.day-map__day {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--surface-2);
+}
+
+.day-map__day[data-level="1"] { background: color-mix(in srgb, var(--accent) 28%, var(--surface-2)); }
+.day-map__day[data-level="2"] { background: color-mix(in srgb, var(--accent) 50%, var(--surface-2)); }
+.day-map__day[data-level="3"] { background: color-mix(in srgb, var(--accent) 74%, var(--surface-2)); }
+.day-map__day[data-level="4"] { background: var(--accent); }
+
+/* A rest day with no focus: an outline instead of a filled square. */
+.day-map__day.is-rest[data-level="0"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.day-map__legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  margin-top: 8px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.day-map__legend .day-map__day {
+  width: 10px;
+}
+
+.day-map__legend span:first-child {
+  margin-inline-end: 3px;
+}
+
+.day-map__legend span:last-child {
+  margin-inline-start: 3px;
+}
+
+.day-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.chip {
+  min-width: 44px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease), border-color var(--fast) var(--ease);
+}
+
+.chip[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
 .row--stacked {
   flex-direction: column;
   align-items: stretch;

@@ -117,8 +117,8 @@ jobs:
             exit 1
           fi
 
-      # Until a real signing key is set up, sign with a test key kept in the
-      # Actions cache, so a newer build installs over an older one.
+      # Signed with the release key when its secrets are set; otherwise with
+      # a test key kept in the Actions cache (see scripts/android-sign.sh).
       - name: Restore the test signing key
         uses: actions/cache@v6
         with:
@@ -126,20 +126,10 @@ jobs:
           key: awan-android-test-keystore-v1
 
       - name: Sign the APK
-        run: |
-          KS="$HOME/.awan-test.keystore"
-          if [ ! -f "$KS" ]; then
-            keytool -genkeypair -keystore "$KS" -storepass awan-test -keypass awan-test \
-              -alias awan-test -keyalg RSA -keysize 2048 -validity 10000 \
-              -dname "CN=Awan test build"
-          fi
-          UNSIGNED=$(find src-tauri/gen/android/app/build/outputs/apk -name '*-unsigned.apk' | head -n 1)
-          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)/apksigner"
-          VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
-          mkdir -p dist
-          "$APKSIGNER" sign --ks "$KS" --ks-pass pass:awan-test --ks-key-alias awan-test \
-            --out "dist/Awan_${VERSION}_android-arm64.apk" "$UNSIGNED"
-          "$APKSIGNER" verify dist/*.apk
+        env:
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: scripts/android-sign.sh dist
 
       - name: Upload APK
         uses: actions/upload-artifact@v7

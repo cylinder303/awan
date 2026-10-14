@@ -3,13 +3,13 @@
 import { app, syncApi, timer } from "./api.js";
 import { store } from "./store.js";
 import { settings } from "./settings.js";
-import { detectLanguage, setLanguage, t } from "./i18n.js";
+import { detectLanguage, getLanguage, setLanguage, t } from "./i18n.js";
 import { applyTheme } from "./theme.js";
 import { renderIcons } from "./icons.js";
-import { formatClock } from "./format.js";
+import { formatClock, intlLocale } from "./format.js";
 import { initTitlebar } from "./titlebar.js";
-import { initPlatform, isMobile } from "./platform.js";
-import { initRouter, navigate } from "./router.js";
+import { initAndroidActions, initPlatform, isMobile, showSession } from "./platform.js";
+import { currentPage, initRouter, navigate } from "./router.js";
 import { initShortcuts } from "./shortcuts.js";
 import { openDialog } from "./components/dialog.js";
 import { installGuard } from "./guard.js";
@@ -75,7 +75,58 @@ async function boot() {
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) syncApi.now();
     });
+    initAndroid();
   }
+}
+
+/** Android: back button, notification and tile actions, and the session notification. */
+function initAndroid() {
+  initAndroidActions({
+    back() {
+      if (document.body.dataset.modal) {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+        return true;
+      }
+      if (currentPage() !== "timer") {
+        navigate("timer");
+        return true;
+      }
+      return false;
+    },
+    action(name) {
+      if (name === "toggle") timer.toggle();
+      else if (name === "skip") timer.skip();
+    },
+  });
+
+  // Only tell Android when something it shows changes, not every second.
+  let shown = "";
+  const show = (view) => {
+    const endsAt = view.status === "running" ? Date.now() + view.remainingMs : 0;
+    const key = [view.status, view.mode, view.task, Math.round(endsAt / 5000), getLanguage()].join("|");
+    if (key === shown) return;
+    shown = key;
+    const mode = t(`mode.${view.mode}`);
+    const clock = new Intl.DateTimeFormat(intlLocale(getLanguage()), { hour: "numeric", minute: "2-digit" });
+    showSession({
+      status: view.status,
+      title: view.task ? `${mode} · ${view.task}` : mode,
+      endsAt,
+      text: t("session.paused", { left: formatClock(view.remainingMs) }),
+      pause: t("session.pause"),
+      resume: t("session.resume"),
+      skip: t("session.skip"),
+      channel: t("session.channel"),
+      openHint: t("session.open_hint"),
+      tile:
+        view.status === "running"
+          ? t("session.tile_running", { mode, end: clock.format(endsAt) })
+          : view.status === "paused"
+            ? t("session.tile_paused")
+            : t("session.tile_idle", { mode }),
+    });
+  };
+  store.subscribe(show);
 }
 
 boot();

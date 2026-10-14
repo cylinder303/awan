@@ -18,6 +18,7 @@ mod settings;
 #[cfg(desktop)]
 mod shortcuts;
 mod sound;
+mod streak;
 mod sync;
 mod timer;
 #[cfg(desktop)]
@@ -152,6 +153,7 @@ pub fn run() {
             commands::history::import_backup,
             commands::history::week_goals,
             commands::history::first_session_at,
+            commands::history::streak_overview,
             commands::sync::sync_info,
             commands::sync::sync_pairing_start,
             commands::sync::sync_pairing_stop,
@@ -334,8 +336,12 @@ fn handle_events(app: &AppHandle, events: Vec<Event>) {
             Event::SleepPaused => {}
         }
     }
+    let any_focus = !focus_ended.is_empty();
     for record in focus_ended {
         check_goals(app, &record);
+    }
+    if any_focus {
+        check_streak(app);
     }
 }
 
@@ -484,6 +490,29 @@ fn check_goals(app: &AppHandle, record: &SessionRecord) {
     }
     for (title, body) in reached {
         let _ = app.notification().builder().title(title).body(body).show();
+    }
+}
+
+/// A quiet note when the streak becomes the longest so far (never when it ends).
+fn check_streak(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    let settings = lock(&state.settings).clone();
+    let lang = *lock(&state.lang);
+    let (overview, known) = {
+        let db = lock(&state.db);
+        let Ok(overview) = streak::overview(&db, &settings, clock::wall_ms(), 0) else { return };
+        let key = format!("streak.best.{}", overview.mode);
+        let known = db.get::<u32>(&key).ok().flatten();
+        if known != Some(overview.streak.best) {
+            let _ = db.set(&key, &overview.streak.best);
+        }
+        (overview, known)
+    };
+    let s = overview.streak;
+    // The first time, just remember the record from the existing history.
+    if known.is_some_and(|k| s.best > k) && s.current == s.best && s.best >= 2 {
+        let (title, body) = i18n::streak_record(lang, overview.mode == "weekly", s.best);
+        let _ = app.notification().builder().title(title).body(body).channel_id("alert-silent").show();
     }
 }
 

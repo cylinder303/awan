@@ -48,6 +48,7 @@ export const history = {
   recentTasks: (limit = 8) => invoke("recent_tasks", { limit }),
   weekGoals: () => invoke("week_goals"),
   firstSessionAt: () => invoke("first_session_at"),
+  streakOverview: (weeks) => invoke("streak_overview", { weeks }),
   exportCsv: (contents, fileName) => invoke("export_csv", { contents, fileName }),
   exportBackup: (fileName) => invoke("export_backup", { fileName }),
   importBackup: () => invoke("import_backup"),

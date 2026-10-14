@@ -28,6 +28,7 @@ export const icons = {
   muted: stroke('<path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"/><path d="M16 10l4 4M20 10l-4 4"/>'),
   download: stroke('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'),
   upload: stroke('<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>'),
+  streak: stroke('<path d="M12 3c.9 2.7 4.8 4.9 4.8 9.6a4.8 4.8 0 0 1-9.6 0c0-2.1 1.1-3.7 2.4-4.8.2 1.6.9 2.6 2 3.1C11.1 8.4 11.2 5.4 12 3z"/>'),
   check: stroke('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
   stop: stroke('<rect x="7" y="7" width="10" height="10" rx="2"/>'),
   trash: stroke('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>'),

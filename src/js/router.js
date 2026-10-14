@@ -31,6 +31,10 @@ export function navigate(name) {
   });
 }
 
+export function currentPage() {
+  return current;
+}
+
 export function initRouter() {
   document.querySelectorAll(".nav__item").forEach((item) =>
     item.addEventListener("click", () => navigate(item.dataset.page)),

@@ -1,4 +1,5 @@
-// Goals page: weekly and daily focus goals, week start, and past weeks.
+// Goals page: weekly and daily focus goals, the streak and its day map,
+// week start, and past weeks.
 
 import { history } from "../api.js";
 import { settings } from "../settings.js";
@@ -11,6 +12,9 @@ import { createRing } from "../components/ring.js";
 import { segmented, stepper, toggle } from "../components/controls.js";
 
 const PAST_WEEKS = 12;
+/** Weeks shown on the day map (about five months). */
+const MAP_WEEKS = 22;
+const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
 export function mount(root) {
   let alive = true;
@@ -27,10 +31,11 @@ export function mount(root) {
       const from = addDays(weekStart, -7 * (i + 1));
       return [from, addDays(from, 7)];
     });
-    const [totals, recorded, first] = await Promise.all([
+    const [totals, recorded, first, streak] = await Promise.all([
       history.focusTotals([periods.today, periods.week, ...past]),
       history.weekGoals(),
       history.firstSessionAt(),
+      history.streakOverview(MAP_WEEKS),
     ]);
     if (!alive || my !== token) return;
     const [today, week, ...pastTotals] = totals;
@@ -46,9 +51,14 @@ export function mount(root) {
     if (first == null) {
       root.append(emptyCard());
     } else {
-      root.append(weekCard(week, s.weeklyGoalMinutes, lang));
+      root.append(weekCard(week, s.weeklyGoalMinutes, lang), streakCard(streak, lang), dayMap(streak, s, lang));
     }
-    root.append(weeklyGoalControl(), dailyCard(today, s, lang, first != null), weekStartControl(lang));
+    root.append(
+      weeklyGoalControl(),
+      dailyCard(today, s, lang, first != null),
+      weekStartControl(lang),
+      streakSettings(s, lang),
+    );
 
     if (first != null) {
       const weeks = past
@@ -86,6 +96,141 @@ export function mount(root) {
     }
     text.append(label, value, of, left);
     card.append(ringBox, text);
+    return card;
+  }
+
+  /** "12 days" with the right plural form ("one day" / "يوم واحد"...). */
+  function span(n, weekly, lang) {
+    const form = new Intl.PluralRules(intlLocale(lang)).select(n);
+    return t(`streak.${weekly ? "weeks" : "days"}.${form}`, { n });
+  }
+
+  function streakCard(o, lang) {
+    const weekly = o.mode === "weekly";
+    const card = el("section", "card streak" + (o.current > 0 ? " is-active" : ""));
+    const icon = el("span", "streak__icon");
+    icon.innerHTML = icons.streak;
+    const text = el("div", "streak__text");
+    const label = el("span", "streak__label");
+    label.textContent = t("streak.title");
+    const value = el("span", "streak__value");
+    const count = el("b", "num");
+    count.textContent = String(o.current);
+    const unit = el("span");
+    const form = new Intl.PluralRules(intlLocale(lang)).select(o.current);
+    unit.textContent = `${t(`streak.unit_${weekly ? "weeks" : "days"}.${form}`)} ${t("streak.in_a_row")}`;
+    value.append(count, unit);
+    const meta = el("span", "streak__meta");
+    const parts = [t("streak.best", { span: span(o.best, weekly, lang) })];
+    if (o.done) parts.push(t(weekly ? "streak.week_done" : "streak.today_done"));
+    meta.textContent = parts.join(" · ");
+    text.append(label, value, meta);
+    card.append(icon, text);
+    return card;
+  }
+
+  /** The last few months, one square per day, darker with more focus. */
+  function dayMap(o, s, lang) {
+    const section = el("section", "settings-section");
+    const title = el("h2", "settings-section__title");
+    title.textContent = t("streak.map_title");
+    const card = el("div", "card day-map");
+    const months = el("div", "day-map__months");
+    const grid = el("div", "day-map__grid");
+    const goal = s.dailyGoalEnabled ? s.dailyGoalMinutes * 60000 : 0;
+    const most = Math.max(1, ...o.days.map((d) => d.focusMs));
+    const monthName = new Intl.DateTimeFormat(intlLocale(lang), { month: "short" });
+    const dayName = new Intl.DateTimeFormat(intlLocale(lang), { weekday: "long", day: "numeric", month: "long" });
+    let lastMonth = null;
+    o.days.forEach((d, i) => {
+      const [y, m, dd] = d.date.split("-").map(Number);
+      const date = new Date(y, m - 1, dd);
+      const cell = el("span", "day-map__day");
+      const level = d.focusMs === 0 ? 0 : Math.min(4, Math.max(1, Math.ceil((d.focusMs / (goal || most)) * 4)));
+      cell.dataset.level = String(level);
+      if (d.rest) cell.classList.add("is-rest");
+      cell.title = `${dayName.format(date)} · ${formatDuration(d.focusMs, lang)}`;
+      grid.append(cell);
+      // Month names over the first week of each month.
+      if (i % 7 === 0) {
+        const label = el("span", "day-map__month");
+        const monthOfWeek = new Date(y, m - 1, dd + 6).getMonth();
+        if (monthOfWeek !== lastMonth) {
+          label.textContent = monthName.format(new Date(y, m - 1, dd + 6));
+          lastMonth = monthOfWeek;
+        }
+        months.append(label);
+      }
+    });
+    const legend = el("div", "day-map__legend");
+    const less = el("span");
+    less.textContent = t("streak.less");
+    const more = el("span");
+    more.textContent = t("streak.more");
+    legend.append(less);
+    for (let level = 0; level <= 4; level++) {
+      const sample = el("span", "day-map__day");
+      sample.dataset.level = String(level);
+      legend.append(sample);
+    }
+    legend.append(more);
+    card.append(months, grid, legend);
+    section.append(title, card);
+    return section;
+  }
+
+  function streakSettings(s, lang) {
+    const card = el("section", "card goal-settings");
+    const mode = segmented({
+      label: t("streak.mode"),
+      options: [
+        { value: "daily", label: t("streak.daily") },
+        { value: "weekly", label: t("streak.weekly") },
+      ],
+      onChange: (streakMode) => settings.update({ streakMode }),
+    });
+    mode.set(s.streakMode);
+    const head = el("div", "row row--stacked");
+    const text = el("div", "row__text");
+    const label = el("span", "row__label");
+    label.textContent = t("streak.mode");
+    const hint = el("span", "row__hint");
+    hint.textContent = t(s.streakMode === "weekly" ? "streak.weekly_hint" : s.dailyGoalEnabled ? "streak.daily_goal_hint" : "streak.daily_hint");
+    text.append(label, hint);
+    head.append(text, mode.el);
+    card.append(head);
+    if (s.streakMode === "weekly") return card;
+
+    // Rest days, in the order of the week as the user starts it.
+    const first = WEEKDAYS.indexOf(s.weekStart);
+    const order = Array.from({ length: 7 }, (_, i) => WEEKDAYS[(first + i) % 7]);
+    const short = new Intl.DateTimeFormat(intlLocale(lang), { weekday: "short" });
+    const chips = el("div", "day-chips");
+    chips.setAttribute("role", "group");
+    chips.setAttribute("aria-label", t("streak.rest_days"));
+    for (const day of order) {
+      const chip = el("button", "chip");
+      chip.type = "button";
+      // 2026-10-04 is a Sunday.
+      chip.textContent = short.format(new Date(2026, 9, 4 + WEEKDAYS.indexOf(day)));
+      const on = s.restDays.includes(day);
+      chip.setAttribute("aria-pressed", String(on));
+      chip.addEventListener("click", () => {
+        const rest = settings.get().restDays;
+        const next = rest.includes(day) ? rest.filter((d) => d !== day) : [...rest, day];
+        if (next.length < 7) settings.update({ restDays: next });
+      });
+      chips.append(chip);
+    }
+    const restRow = el("div", "row row--stacked");
+    const restText = el("div", "row__text");
+    const restLabel = el("span", "row__label");
+    restLabel.textContent = t("streak.rest_days");
+    const restHint = el("span", "row__hint");
+    restHint.textContent = t("streak.rest_hint");
+    restText.append(restLabel, restHint);
+    restRow.append(restText, chips);
+    card.append(restRow);
     return card;
   }
 
@@ -211,7 +356,7 @@ export function mount(root) {
   let last = null;
   offs.push(
     settings.subscribe((s) => {
-      const key = [s.weeklyGoalMinutes, s.dailyGoalEnabled, s.dailyGoalMinutes, s.weekStart].join();
+      const key = [s.weeklyGoalMinutes, s.dailyGoalEnabled, s.dailyGoalMinutes, s.weekStart, s.streakMode, s.restDays].join();
       if (last !== null && key !== last) render();
       last = key;
     }),

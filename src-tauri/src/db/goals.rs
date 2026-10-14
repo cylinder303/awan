@@ -52,6 +52,18 @@ impl Db {
         Ok(())
     }
 
+    /// Every focus session as (start, length, completed), for the streak.
+    pub fn focus_sessions(&self) -> Result<Vec<(i64, u64, bool)>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT started_at, duration_ms, completed FROM sessions WHERE mode = 'focus'")
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get::<_, i64>(1)?.max(0) as u64, r.get(2)?)))
+            .map_err(|e| e.to_string())?;
+        rows.collect::<rusqlite::Result<_>>().map_err(|e| e.to_string())
+    }
+
     /// Start time of the oldest session, if any.
     pub fn first_session_at(&self) -> Result<Option<i64>> {
         self.conn

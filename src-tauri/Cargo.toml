@@ -1,7 +1,7 @@
 [package]
 name = "awan"
 version = "1.0.0"
-description = "Awan: a minimal Pomodoro timer for Windows"
+description = "Awan: a minimal Pomodoro timer for Windows and Android"
 license = "MIT"
 edition = "2021"
 rust-version = "1.77"

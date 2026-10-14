@@ -1,5 +1,6 @@
 package io.github.cylinder303.awan
 
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.AudioManager
@@ -9,6 +10,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -23,6 +25,8 @@ class MainActivity : TauriActivity() {
   @Volatile private var insets = "{\"top\":0,\"right\":0,\"bottom\":0,\"left\":0}"
   private var webView: WebView? = null
   private var player: MediaPlayer? = null
+  /** An action from the tile or notification that arrived before the page was ready. */
+  @Volatile private var pendingAction: String? = null
 
   /** Android 17 asks before an app talks to devices on the local network
    *  (here: the computer it syncs with). */
@@ -33,6 +37,42 @@ class MainActivity : TauriActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
+    live = this
+    pendingAction = intent?.getStringExtra(SessionNotification.EXTRA_ACTION)
+    // Back closes a dialog or returns to the timer before leaving the app.
+    onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+      override fun handleOnBackPressed() {
+        val page = webView
+        if (page == null) return leave()
+        page.evaluateJavascript("window.__awanBack ? window.__awanBack() : false") { handled ->
+          if (handled != "true") leave()
+        }
+      }
+
+      private fun leave() {
+        isEnabled = false
+        onBackPressedDispatcher.onBackPressed()
+        isEnabled = true
+      }
+    })
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    intent.getStringExtra(SessionNotification.EXTRA_ACTION)?.let { dispatchAction(it) }
+  }
+
+  /** Hand "toggle" or "skip" to the page, or keep it until the page is ready. */
+  fun dispatchAction(action: String) {
+    val page = webView
+    if (page == null) {
+      pendingAction = action
+      return
+    }
+    val safe = action.filter { it.isLetter() }
+    page.evaluateJavascript("window.__awanAction ? (window.__awanAction('$safe'), true) : false") { done ->
+      if (done != "true") pendingAction = action
+    }
   }
 
   override fun onWebViewCreate(webView: WebView) {
@@ -60,6 +100,7 @@ class MainActivity : TauriActivity() {
   }
 
   override fun onDestroy() {
+    if (live === this) live = null
     player?.release()
     player = null
     super.onDestroy()
@@ -106,6 +147,20 @@ class MainActivity : TauriActivity() {
       Settings.Global.getString(contentResolver, "device_name")?.takeIf { it.isNotBlank() }
         ?: Build.MODEL
 
+    /** The timer state for the session notification and the tile (JSON). */
+    @JavascriptInterface
+    fun session(json: String) {
+      SessionNotification.update(this@MainActivity, json)
+    }
+
+    /** An action from the tile or notification waiting for the page, once. */
+    @JavascriptInterface
+    fun takePendingAction(): String {
+      val action = pendingAction ?: ""
+      pendingAction = null
+      return action
+    }
+
     /** "granted", or "ask" when the system prompt has to be shown first. */
     @JavascriptInterface
     fun localNetwork(): String = if (localNetworkGranted()) "granted" else "ask"
@@ -122,9 +177,11 @@ class MainActivity : TauriActivity() {
     }
   }
 
-  private companion object {
-    const val LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK"
+  companion object {
+    /** The running activity, for the notification buttons and the tile. */
+    @Volatile var live: MainActivity? = null
+    private const val LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK"
     /** Android 17, where the permission starts to apply. */
-    const val LOCAL_NETWORK_SDK = 37
+    private const val LOCAL_NETWORK_SDK = 37
   }
 }

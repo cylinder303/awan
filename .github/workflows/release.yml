@@ -2,7 +2,8 @@ name: Release
 
 # Builds the Windows installer, checks that it installs and that the app
 # starts, then attaches it to the GitHub release of the tag (creating the
-# release if it does not exist yet). Two ways to start it:
+# release if it does not exist yet). The Android APK, signed with the
+# release key, is attached to the same release. Two ways to start it:
 #   - push a version tag, for example v1.0.0;
 #   - Actions -> Release -> Run workflow, with the tag. An existing tag is
 #     rebuilt; a new one is created on the commit the workflow runs from.
@@ -111,3 +112,53 @@ jobs:
           name: smoke-test
           path: smoke
           if-no-files-found: ignore
+
+  android:
+    needs: windows
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # The Windows job made sure the tag exists; build exactly that commit.
+      - name: Check out the tag
+        run: |
+          git fetch --depth 1 origin "refs/tags/$TAG:refs/tags/$TAG"
+          git checkout --detach "$TAG"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the APK
+        run: |
+          export NDK_HOME="$ANDROID_NDK_LATEST_HOME"
+          npx tauri android build --apk --target aarch64 --ci
+
+      - name: Sign with the release key
+        env:
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: scripts/android-sign.sh dist --release
+
+      - name: Attach to the GitHub release
+        run: gh release upload "$TAG" dist/*.apk --clobber

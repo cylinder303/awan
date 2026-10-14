@@ -87,6 +87,32 @@ pub fn goal_reached(lang: Lang, weekly: bool, goal_minutes: u32) -> (&'static st
 }
 
 
+/// "12 days" / "١٢ يومًا"-style counts with Arabic plural forms (Latin digits).
+fn count(lang: Lang, n: u32, weekly: bool) -> String {
+    match lang {
+        Lang::En => format!("{n} {}", if weekly { if n == 1 { "week" } else { "weeks" } } else if n == 1 { "day" } else { "days" }),
+        Lang::Ar => {
+            let (one, two, few, many) =
+                if weekly { ("أسبوع واحد", "أسبوعان", "أسابيع", "أسبوعًا") } else { ("يوم واحد", "يومان", "أيام", "يومًا") };
+            match (n, n % 100) {
+                (1, _) => one.to_string(),
+                (2, _) => two.to_string(),
+                (_, 3..=10) => format!("{n} {few}"),
+                _ => format!("{n} {many}"),
+            }
+        }
+    }
+}
+
+/// A quiet note when the streak becomes the longest so far.
+pub fn streak_record(lang: Lang, weekly: bool, n: u32) -> (&'static str, String) {
+    let span = count(lang, n, weekly);
+    match lang {
+        Lang::Ar => ("أطول مواظبة لك", format!("{span} على التوالي، أطول من أي وقت مضى.")),
+        Lang::En => ("Your longest streak", format!("{span} in a row, longer than ever before.")),
+    }
+}
+
 pub fn mode_name(lang: Lang, mode: Mode) -> &'static str {
     match (lang, mode) {
         (Lang::Ar, Mode::Focus) => "تركيز",
@@ -162,6 +188,15 @@ pub fn still_running(lang: Lang) -> (&'static str, &'static str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn arabic_counts_use_the_right_plural() {
+        let days: Vec<String> = [1, 2, 3, 10, 11, 100, 103].iter().map(|&n| count(Lang::Ar, n, false)).collect();
+        assert_eq!(days, ["يوم واحد", "يومان", "3 أيام", "10 أيام", "11 يومًا", "100 يومًا", "103 أيام"]);
+        assert_eq!(count(Lang::Ar, 2, true), "أسبوعان");
+        assert_eq!(count(Lang::En, 1, true), "1 week");
+        assert_eq!(count(Lang::En, 5, false), "5 days");
+    }
 
     #[test]
     fn durations_read_naturally() {

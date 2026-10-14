@@ -51,6 +51,12 @@
       "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; media-src 'self'; connect-src ipc: http://ipc.localhost"
     }
   },
+  "plugins": {
+    "notification": {
+      "icon": "ic_stat_awan",
+      "iconColor": "#d1764f"
+    }
+  },
   "bundle": {
     "active": true,
     "targets": [
@@ -86,6 +92,6 @@
       }
     },
     "homepage": "https://github.com/cylinder303/awan",
-    "longDescription": "A minimal, offline Pomodoro timer for Windows with focus statistics, goals, a mini mode and Arabic/English support."
+    "longDescription": "A minimal, offline Pomodoro timer for Windows and Android with focus statistics, goals and streaks, a mini mode, phone-computer sync over Wi-Fi, and Arabic/English support."
   }
 }

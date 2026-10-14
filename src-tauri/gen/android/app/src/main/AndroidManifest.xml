@@ -30,6 +30,23 @@
             </intent-filter>
         </activity>
 
+        <!-- Buttons of the session notification. -->
+        <receiver
+            android:name=".ActionReceiver"
+            android:exported="false" />
+
+        <!-- Quick Settings button: start or pause the timer. -->
+        <service
+            android:name=".SessionTile"
+            android:exported="true"
+            android:icon="@drawable/ic_stat_awan"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
         <provider
           android:name="androidx.core.content.FileProvider"
           android:authorities="${applicationId}.fileprovider"

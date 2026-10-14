@@ -29,6 +29,29 @@ export function ensureLocalNetwork() {
   });
 }
 
+/**
+ * Android: the back button and the actions coming from the session
+ * notification and the Quick Settings tile ("toggle", "skip").
+ * `back()` returns true when it handled the press (else the app goes away).
+ */
+export function initAndroidActions({ back, action }) {
+  const bridge = window.AwanAndroid;
+  if (!bridge?.takePendingAction) return;
+  window.__awanBack = back;
+  window.__awanAction = action;
+  const pending = bridge.takePendingAction();
+  if (pending) action(pending);
+}
+
+/** Show the running or paused session in a notification and the tile. */
+export function showSession(state) {
+  try {
+    window.AwanAndroid?.session?.(JSON.stringify(state));
+  } catch {
+    // Older app without the bridge method: nothing to show.
+  }
+}
+
 /** Mark the page with its platform and keep the system insets current. */
 export function initPlatform() {
   const root = document.documentElement;

@@ -16,3 +16,7 @@ Thumbs.db
 *.log
 dist/
 smoke/
+
+# Signing keys never belong in the repository
+*.keystore
+*.jks

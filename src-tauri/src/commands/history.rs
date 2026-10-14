@@ -37,6 +37,14 @@ pub fn first_session_at(state: State<'_, AppState>) -> Result<Option<i64>, Strin
     lock(&state.db).first_session_at()
 }
 
+/// The streak and the day map for the goals page.
+#[tauri::command]
+pub fn streak_overview(state: State<'_, AppState>, weeks: u32) -> Result<crate::streak::Overview, String> {
+    let settings = lock(&state.settings).clone();
+    let db = lock(&state.db);
+    crate::streak::overview(&db, &settings, clock::wall_ms(), weeks.min(60))
+}
+
 #[tauri::command]
 pub fn recent_tasks(state: State<'_, AppState>, limit: u32) -> Result<Vec<String>, String> {
     lock(&state.db).recent_tasks(limit.min(50))

@@ -40,6 +40,10 @@ pub struct Settings {
     pub weekly_goal_minutes: u32,
     pub daily_goal_enabled: bool,
     pub daily_goal_minutes: u32,
+    /// Streak counted in "daily" or "weekly" steps.
+    pub streak_mode: String,
+    /// Days that never break a daily streak, e.g. ["friday"].
+    pub rest_days: Vec<String>,
     /// What the window's close button does: "tray" (keep running) or "quit".
     pub close_action: String,
     /// Mirrors the Windows startup entry (changed only through its command).
@@ -79,6 +83,8 @@ impl Default for Settings {
             weekly_goal_minutes: 20 * 60,
             daily_goal_enabled: false,
             daily_goal_minutes: 4 * 60,
+            streak_mode: "daily".to_string(),
+            rest_days: Vec::new(),
             close_action: "tray".to_string(),
             launch_at_startup: false,
             mini_opacity: 92,
@@ -125,6 +131,17 @@ impl Settings {
         if !matches!(self.close_action.as_str(), "tray" | "quit") {
             self.close_action = d.close_action;
         }
+        if !matches!(self.streak_mode.as_str(), "daily" | "weekly") {
+            self.streak_mode = d.streak_mode;
+        }
+        let mut rest: Vec<String> = Vec::new();
+        for day in std::mem::take(&mut self.rest_days) {
+            if crate::streak::weekday(&day).is_some() && !rest.contains(&day) {
+                rest.push(day);
+            }
+        }
+        // Resting every day would make the streak meaningless.
+        self.rest_days = if rest.len() < 7 { rest } else { Vec::new() };
         self.mini_opacity = self.mini_opacity.clamp(30, 100);
         if self.global_shortcut.len() > 40
             || !self.global_shortcut.chars().all(|c| c.is_ascii_alphanumeric() || c == '+')
@@ -194,6 +211,8 @@ pub struct Shared {
     pub weekly_goal_minutes: u32,
     pub daily_goal_enabled: bool,
     pub daily_goal_minutes: u32,
+    pub streak_mode: String,
+    pub rest_days: Vec<String>,
 }
 
 impl Default for Shared {
@@ -219,6 +238,8 @@ impl Settings {
             weekly_goal_minutes: self.weekly_goal_minutes,
             daily_goal_enabled: self.daily_goal_enabled,
             daily_goal_minutes: self.daily_goal_minutes,
+            streak_mode: self.streak_mode.clone(),
+            rest_days: self.rest_days.clone(),
         }
     }
 
@@ -239,6 +260,8 @@ impl Settings {
             weekly_goal_minutes: s.weekly_goal_minutes,
             daily_goal_enabled: s.daily_goal_enabled,
             daily_goal_minutes: s.daily_goal_minutes,
+            streak_mode: s.streak_mode,
+            rest_days: s.rest_days,
             ..self
         }
         .sanitized()
