@@ -92,6 +92,14 @@ pub struct AppState {
     start_hidden: bool,
 }
 
+/// A notification, with the app's status bar icon on Android.
+pub(crate) fn notification(app: &AppHandle) -> tauri_plugin_notification::NotificationBuilder<tauri::Wry> {
+    let builder = app.notification().builder();
+    #[cfg(target_os = "android")]
+    let builder = builder.icon("ic_stat_awan").icon_color("#d1764f");
+    builder
+}
+
 /// Lock a mutex, recovering the data if a previous holder panicked.
 pub(crate) fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
@@ -321,7 +329,7 @@ fn handle_events(app: &AppHandle, events: Vec<Event>) {
                     let state = app.state::<AppState>();
                     let lang = *lock(&state.lang);
                     let (title, body) = i18n::finished(lang, ended, next);
-                    let _ = app.notification().builder().title(title).body(body).show();
+                    let _ = notification(app).title(title).body(body).show();
                     let (id, volume) = {
                         let s = lock(&state.settings);
                         (s.sound.clone(), s.alert_volume())
@@ -450,7 +458,7 @@ fn on_close_requested(window: &Window, api: &CloseRequestApi) {
     };
     if first_time {
         let (title, body) = i18n::still_running(*lock(&state.lang));
-        let _ = app.notification().builder().title(title).body(body).show();
+        let _ = notification(app).title(title).body(body).show();
     }
 }
 
@@ -489,7 +497,7 @@ fn check_goals(app: &AppHandle, record: &SessionRecord) {
         reached.push(i18n::goal_reached(lang, true, settings.weekly_goal_minutes));
     }
     for (title, body) in reached {
-        let _ = app.notification().builder().title(title).body(body).show();
+        let _ = notification(app).title(title).body(body).show();
     }
 }
 
@@ -512,7 +520,7 @@ fn check_streak(app: &AppHandle) {
     // The first time, just remember the record from the existing history.
     if known.is_some_and(|k| s.best > k) && s.current == s.best && s.best >= 2 {
         let (title, body) = i18n::streak_record(lang, overview.mode == "weekly", s.best);
-        let _ = app.notification().builder().title(title).body(body).channel_id("alert-silent").show();
+        let _ = notification(app).title(title).body(body).channel_id("alert-silent").show();
     }
 }
 

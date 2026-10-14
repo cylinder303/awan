@@ -130,8 +130,7 @@ pub fn sync(app: &AppHandle) {
             continue;
         };
         let (title, body) = i18n::finished(alert.lang, alert.ended, alert.next);
-        let mut builder = notification
-            .builder()
+        let mut builder = crate::notification(app)
             .id(alert.id)
             .channel_id(&alert.channel)
             .title(title)
