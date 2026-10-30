@@ -20,3 +20,6 @@ smoke/
 # Signing keys never belong in the repository
 *.keystore
 *.jks
+
+# Personal instructions for Claude Code (see CLAUDE.md)
+CLAUDE.local.md
