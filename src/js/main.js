@@ -5,6 +5,7 @@ import { store } from "./store.js";
 import { settings } from "./settings.js";
 import { detectLanguage, getLanguage, setLanguage, t } from "./i18n.js";
 import { applyTheme } from "./theme.js";
+import { applyFonts } from "./fonts.js";
 import { renderIcons } from "./icons.js";
 import { formatClock, intlLocale } from "./format.js";
 import { initTitlebar } from "./titlebar.js";
@@ -36,6 +37,7 @@ let appliedLanguage = null;
 /** Apply appearance and language settings to the window. */
 function applySettings(s) {
   applyTheme(s);
+  applyFonts(s);
   const lang = s.language === "auto" ? detectLanguage() : s.language;
   if (lang !== appliedLanguage) {
     appliedLanguage = lang;
@@ -65,6 +67,7 @@ async function boot() {
   initShortcuts();
 
   // Show the window only once fonts and the first frame are ready (no flash).
+  await applyFonts(settings.get());
   await document.fonts.ready;
   requestAnimationFrame(() => app.ready());
 

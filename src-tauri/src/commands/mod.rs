@@ -1,5 +1,6 @@
 //! Commands invoked from the web UI.
 
+pub mod fonts;
 pub mod history;
 pub mod sync;
 

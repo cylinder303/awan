@@ -4,6 +4,7 @@ import { history, timer } from "../api.js";
 import { store } from "../store.js";
 import { t, translate, onLanguageChange } from "../i18n.js";
 import { formatClock } from "../format.js";
+import { setClock } from "../fonts.js";
 import { icons, renderIcons } from "../icons.js";
 import { createRing } from "../components/ring.js";
 import { openDialog } from "../components/dialog.js";
@@ -56,7 +57,7 @@ export function mount(root) {
   let frame = 0;
 
   function render(view) {
-    time.textContent = formatClock(view.remainingMs);
+    setClock(time, formatClock(view.remainingMs));
     cycle.textContent = t("timer.cycle", { index: view.cycleIndex, total: view.cycleLen });
     tabs.forEach((tab) => tab.setAttribute("aria-selected", String(tab.dataset.value === view.mode)));
 

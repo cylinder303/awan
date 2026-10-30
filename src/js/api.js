@@ -62,6 +62,19 @@ export const sounds = {
     window.AwanAndroid ? window.AwanAndroid.playSound(id, volume / 100) : invoke("preview_sound", { id, volume }),
 };
 
+export const fontsApi = {
+  /** Font families installed on the computer: [{ family, arabic, digits }]. */
+  system: () => invoke("system_fonts"),
+  /** Font files the user added: [{ id, family, style, arabic, digits, weight }]. */
+  files: () => invoke("font_files"),
+  /** Ask for a font file and add it; null if cancelled. */
+  add: () => invoke("add_font_file"),
+  /** The bytes of an added font (an ArrayBuffer). */
+  data: (id) => invoke("font_file_data", { id }),
+  /** Remove an added font; resolves with the settings (fonts using it reset). */
+  remove: (id) => invoke("remove_font_file", { id }),
+};
+
 export const syncApi = {
   info: () => invoke("sync_info"),
   startPairing: () => invoke("sync_pairing_start"),

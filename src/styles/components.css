@@ -206,10 +206,12 @@
 }
 
 .dial__time {
+  font-family: var(--font-timer);
   font-size: 23cqi;
   font-weight: 300;
   line-height: 1;
-  letter-spacing: -0.02em;
+  --tracking: -0.02em;
+  letter-spacing: var(--tracking);
 }
 
 .dial__cycle {
@@ -706,6 +708,200 @@
 
 .theme-tile[aria-checked="true"] .theme-tile__preview {
   box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* Fonts */
+.font-btn {
+  max-width: 160px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: border-color var(--fast) var(--ease);
+}
+
+@media (hover: hover) {
+  .font-btn:hover {
+    border-color: var(--accent);
+  }
+}
+
+/* The font picker is taller than other dialogs: its list scrolls. */
+.dialog--fonts {
+  width: min(100%, 340px);
+  max-height: calc(100dvh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+
+.font-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  flex: 1;
+  margin-bottom: 14px;
+}
+
+.font-preview {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.dialog .font-preview__line {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.dialog .font-preview__note {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+}
+
+.font-preview--timer {
+  place-items: center;
+  padding: 6px 12px;
+}
+
+.font-preview__clock {
+  --tracking: -0.02em;
+  letter-spacing: var(--tracking);
+  font-size: 44px;
+  font-weight: 300;
+  line-height: 1.15;
+}
+
+.font-search {
+  width: 100%;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12.5px;
+  user-select: text;
+}
+
+.font-search:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.font-list {
+  flex: 1;
+  min-height: 120px;
+  max-height: 260px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  margin-inline: -6px;
+  padding-inline: 6px;
+}
+
+.font-group + .font-group {
+  margin-top: 8px;
+}
+
+.dialog .font-group__title {
+  position: sticky;
+  top: 0;
+  margin: 0;
+  padding: 4px 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface);
+  z-index: 1;
+}
+
+.font-item-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.font-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  text-align: start;
+  /* Long lists of installed fonts: only draw the rows in view. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 36px;
+  transition: background-color var(--fast) var(--ease);
+}
+
+.font-item-row .font-item {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (hover: hover) {
+  .font-item:hover {
+    background: var(--surface-2);
+  }
+}
+
+.font-item[aria-selected="true"] {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.font-item__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.font-item__sample {
+  flex: none;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.font-item__tag {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.font-item__remove {
+  flex: none;
+}
+
+.dialog .font-list__status {
+  margin: 4px 2px;
+  font-size: 12px;
+}
+
+.font-add {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.font-add svg {
+  width: 15px;
+  height: 15px;
 }
 
 /* Custom theme */

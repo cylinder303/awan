@@ -47,21 +47,10 @@ A calm, minimal Pomodoro timer for Windows and Android
 - **نسخة أندرويد:** يستمر العدّ والشاشة مقفلة، ويرنّ التنبيه بالصوت الذي اخترته في وقته حتى لو أُغلق التطبيق. وأثناء الجلسة يعدّ إشعارٌ الوقتَ المتبقي، وفيه زرّا الإيقاف المؤقت والتخطي، ويبدأ زرٌّ في الإعدادات السريعة الجلسة بلمسة.
 - **المزامنة:** اربط جوالك بكمبيوترك مرة واحدة برمز، فيتزامن السجل والأهداف والإعدادات بينهما ما داما على نفس شبكة الواي فاي، دون حساب ولا خادم، والبيانات مشفّرة. أما مستوى الصوت وخيارات النوافذ والاختصارات فيبقى لكل جهاز.
 - **السمات:** ست سمات جاهزة (فاتح، وداكن، وأسود تام، وأزرق ليلي، وأخضر زيتوني، وبيج دافئ)، وسمة تلقائية تتبع وضع ويندوز، وسمة مخصّصة بألوانك.
+- **الخطوط:** خط للواجهة وخط لأرقام المؤقت، كلٌّ على حدة. خمسة خطوط عربية مضمَّنة تعمل دون إنترنت (IBM Plex Sans Arabic، وCairo، وTajawal، وReadex Pro، وNoto Naskh Arabic)، أو أي خط مثبّت على ويندوز، أو ملف خط (TTF أو OTF) تضيفه بنفسك. تعاين الخط على الواجهة قبل اعتماده، وأرقام المؤقت بعرض ثابت مهما كان الخط فلا يهتز الوقت أثناء العدّ. وإن لم يحوِ الخط الحروف العربية ظهر النص العربي بالخط الافتراضي. الخطوط خاصة بكل جهاز ولا تتزامن.
 - **اللغة:** العربية والإنجليزية، ويتبع التطبيق لغة النظام افتراضيًا.
 - **التشغيل مع ويندوز:** خيار لتشغيل التطبيق في علبة النظام عند بدء تشغيل الجهاز.
 - **النسخ الاحتياطي:** تصدير الإعدادات والسجلّ في ملف واحد واستعادتهما لاحقًا.
-
-### قادم قريبًا
-
-ميزة مخطط لها في الإصدار القادم:
-
-**الخطوط**
-
-- اختيار خط لأرقام المؤقت وخط للواجهة، كلٌّ على حدة.
-- خطوط عربية مضمَّنة تعمل دون إنترنت، وكلها بترخيص حر.
-- استخدام أي خط مثبّت على ويندوز، أو إضافة ملف خط (TTF أو OTF) بنفسك.
-- أرقام المؤقت بعرض ثابت مهما كان الخط، فلا يهتز الوقت أثناء العدّ.
-- معاينة فورية قبل الاعتماد، وعودة تلقائية إلى الخط الافتراضي إن لم يدعم الخط الحروف العربية.
 
 ### التثبيت على ويندوز
 
@@ -105,7 +94,7 @@ A calm, minimal Pomodoro timer for Windows and Android
 
 ### الترخيص
 
-أوان مفتوح المصدر بترخيص [MIT](LICENSE). أما الخط المضمَّن فيه، IBM Plex Sans Arabic، فله ترخيصه الخاص: [SIL Open Font License 1.1](src/assets/fonts/OFL.txt).
+أوان مفتوح المصدر بترخيص [MIT](LICENSE). أما الخطوط المضمَّنة فيه فلها ترخيصها الخاص، [SIL Open Font License 1.1](src/assets/fonts/OFL.txt)، وتفاصيلها في [src/assets/fonts](src/assets/fonts/README.md).
 
 </div>
 
@@ -140,21 +129,10 @@ A calm, minimal Pomodoro timer for Windows and Android
 - **Android:** the timer keeps counting with the screen locked, and the alert rings with your sound on time even if the app was closed. During a session a notification counts down the time left, with pause and skip buttons, and a Quick Settings button starts a session in one tap.
 - **Sync:** link your phone and computer once with a code, and history, goals and settings stay in step while both are on the same Wi-Fi, with no account and no server; the data is encrypted. Volume and the window and shortcut options stay per device.
 - **Themes:** six built-in themes (Light, Dark, True black, Midnight blue, Olive green and Warm beige), an automatic theme that follows Windows, and a custom theme in your own colors.
+- **Fonts:** one font for the interface and another for the timer digits. Five bundled Arabic fonts that work offline (IBM Plex Sans Arabic, Cairo, Tajawal, Readex Pro and Noto Naskh Arabic), any font installed on Windows, or a font file (TTF or OTF) you add yourself. Preview a font on the interface before applying it; the timer digits keep a fixed width in any font, so the time never jitters while counting. If a font has no Arabic letters, Arabic text shows in the default font. Fonts stay with each device and are not synced.
 - **Languages:** Arabic and English; the app follows the system language by default.
 - **Start with Windows:** an option to start the app in the system tray when you sign in.
 - **Backup:** export your settings and history to a single file and restore them later.
-
-### Coming next
-
-One feature planned for the next release:
-
-**Fonts**
-
-- Pick one font for the timer digits and another for the interface.
-- Bundled Arabic fonts that work offline, all under free licenses.
-- Use any font installed on Windows, or add your own font file (TTF or OTF).
-- Timer digits always keep a fixed width, so the time never jitters while counting.
-- Live preview before applying, and an automatic fallback to the default font if a font lacks Arabic letters.
 
 ### Install on Windows
 
@@ -198,4 +176,4 @@ To suggest a feature or report a problem, open an [issue](../../issues). To buil
 
 ### License
 
-Awan is open source under the [MIT License](LICENSE). The bundled IBM Plex Sans Arabic font has its own license, the [SIL Open Font License 1.1](src/assets/fonts/OFL.txt).
+Awan is open source under the [MIT License](LICENSE). The bundled fonts have their own license, the [SIL Open Font License 1.1](src/assets/fonts/OFL.txt); see [src/assets/fonts](src/assets/fonts/README.md) for each one.

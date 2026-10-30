@@ -4,6 +4,7 @@ import { app, appWindow, timer } from "./api.js";
 import { settings } from "./settings.js";
 import { store } from "./store.js";
 import { applyTheme } from "./theme.js";
+import { applyFonts, setClock } from "./fonts.js";
 import { detectLanguage, setLanguage, t } from "./i18n.js";
 import { formatClock } from "./format.js";
 import { icons, renderIcons } from "./icons.js";
@@ -24,7 +25,7 @@ function label(btn, key) {
 function render(view) {
   document.body.dataset.mode = view.mode;
   root.dataset.status = view.status;
-  time.textContent = formatClock(view.remainingMs);
+  setClock(time, formatClock(view.remainingMs));
   const running = view.status === "running";
   toggleBtn.innerHTML = running ? icons.pause : icons.play;
   label(toggleBtn, running ? "timer.pause" : view.status === "paused" ? "timer.resume" : "timer.start");
@@ -43,8 +44,12 @@ function animate() {
   if (view.status === "running") frame = requestAnimationFrame(animate);
 }
 
+// The mini timer's digits are drawn at weight 400 (see mini.css).
+const DIGIT_WEIGHT = 400;
+
 function applySettings(s) {
   applyTheme(s);
+  applyFonts(s, { weight: DIGIT_WEIGHT });
   root.style.setProperty("--mini-alpha", `${s.miniOpacity}%`);
   setLanguage(s.language === "auto" ? detectLanguage() : s.language);
 }
@@ -76,6 +81,7 @@ async function boot() {
   });
   initShortcuts();
 
+  await applyFonts(settings.get(), { weight: DIGIT_WEIGHT });
   await document.fonts.ready;
   requestAnimationFrame(() => app.ready());
 }

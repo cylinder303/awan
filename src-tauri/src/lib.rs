@@ -11,6 +11,7 @@ mod clock;
 mod commands;
 mod db;
 mod display;
+mod fonts;
 mod goals;
 mod i18n;
 mod power;
@@ -152,6 +153,11 @@ pub fn run() {
             commands::reset_settings,
             commands::list_sounds,
             commands::preview_sound,
+            commands::fonts::system_fonts,
+            commands::fonts::font_files,
+            commands::fonts::add_font_file,
+            commands::fonts::font_file_data,
+            commands::fonts::remove_font_file,
             commands::history::list_sessions,
             commands::history::delete_session,
             commands::history::focus_totals,

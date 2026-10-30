@@ -51,6 +51,13 @@ docs/                لقطات الشاشة والشعار
 
 جميع السمات في ملف واحد: `src/styles/themes.css`. انسخ إحدى الكتل، وغيّر معرّفها (`data-theme`) واسمها (`--theme-name-ar` و`--theme-name-en`) وألوانها، فتظهر في الإعدادات تلقائيًا.
 
+### الخطوط
+
+- الخطوط المضمَّنة ملفات `woff2` في `src/assets/fonts` (من حزم [Fontsource](https://fontsource.org)، الجزء العربي والجزء اللاتيني فقط)، ويعرّفها `src/styles/fonts.css`، وقائمتها في الإعدادات في `src/js/font-list.js`. لإضافة خط: انسخ ملفاته وترخيصه (OFL فقط)، وأضف كتل `@font-face` باسم يبدأ بـ «Awan»، ثم أضفه إلى `BUNDLED_FONTS` وإلى جدول `src/assets/fonts/README.md`.
+- الخطوط المثبّتة على ويندوز وملفات الخطوط المضافة في `src-tauri/src/fonts.rs`: يقرأ جدولي `name` و`cmap` فقط ليعرف اسم الخط وهل فيه الحروف العربية والأرقام. وتُنسخ الملفات المضافة إلى `%APPDATA%\io.github.cylinder303.awan\fonts`.
+- أرقام المؤقت: يضع `setClock` في `src/js/fonts.js` كل رقم في خانة بعرض أعرض رقم في الخط، فلا يتحرك الوقت مع أي خط.
+- خطوط الاختبار الصغيرة في `src-tauri/tests/fonts` يولّدها `python3 scripts/test-fonts.py` (يحتاج fontTools).
+
 ### الشعار والأيقونات
 
 مصدر الشعار `scripts/icon.svg`، ومصدر أيقونة علبة النظام `scripts/tray-icon.svg`. بعد تعديل أيٍّ منهما شغّل `npm run icons`. وتفاصيل صور المثبّت ونسخة الشعار البديلة في [docs/logo](docs/logo/README.md).
@@ -142,6 +149,13 @@ docs/                screenshots and logo
 ### Add a theme
 
 All themes live in one file, `src/styles/themes.css`. Copy a block and change its id (`data-theme`), its names (`--theme-name-ar` and `--theme-name-en`) and its colors; it appears in Settings automatically.
+
+### Fonts
+
+- The bundled fonts are `woff2` files in `src/assets/fonts` (from [Fontsource](https://fontsource.org) packages, Arabic and Latin subsets only), declared in `src/styles/fonts.css` and listed in Settings from `src/js/font-list.js`. To add one: copy its files and license (OFL only), add `@font-face` blocks with a family name starting with "Awan", then add it to `BUNDLED_FONTS` and to the table in `src/assets/fonts/README.md`.
+- Installed Windows fonts and added font files are handled in `src-tauri/src/fonts.rs`, which reads only the `name` and `cmap` tables to learn a font's name and whether it has Arabic letters and digits. Added files are copied to `%APPDATA%\io.github.cylinder303.awan\fonts`.
+- Timer digits: `setClock` in `src/js/fonts.js` puts each digit in a box as wide as the font's widest digit, so the time keeps still in any font.
+- The tiny test fonts in `src-tauri/tests/fonts` are written by `python3 scripts/test-fonts.py` (needs fontTools).
 
 ### Logo and icons
 

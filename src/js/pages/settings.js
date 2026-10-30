@@ -15,6 +15,7 @@ import { segmented, stepper, toggle } from "../components/controls.js";
 import { isMobile } from "../platform.js";
 import { el, row, section, stackedRow } from "../components/layout.js";
 import { syncSection } from "./sync-section.js";
+import { fontButton } from "./font-picker.js";
 
 let soundIds = null;
 
@@ -50,6 +51,10 @@ export function mount(root) {
         customThemeEditor(),
         row(t("settings.mode_colors"), switchControl("modeColors", t("settings.mode_colors")), t("settings.mode_colors_hint")),
       ]),
+      section(t("fonts.title"), [
+        row(t("fonts.ui"), fontButton("fontUi", controls)),
+        row(t("fonts.timer"), fontButton("fontTimer", controls)),
+      ], t("fonts.hint")),
       section(t("settings.language"), [languageControl()]),
       // Windows, startup and keyboard shortcuts belong to a computer.
       ...(isMobile

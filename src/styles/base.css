@@ -7,7 +7,11 @@
 }
 
 :root {
+  /* The interface and timer fonts; js/fonts.js sets them from the settings. */
   --font: "Plex Arabic", "Segoe UI", system-ui, sans-serif;
+  --font-timer: var(--font);
+  /* Width of each timer digit: the widest digit of the timer font. */
+  --digit-w: 0.6em;
   --radius-sm: 8px;
   --radius: 14px;
   --radius-lg: 20px;
@@ -111,6 +115,15 @@ button {
   font-variant-numeric: tabular-nums;
   direction: ltr;
   unicode-bidi: isolate;
+}
+
+/* A clock face (js/fonts.js setClock): every digit gets the same box, so the
+   time keeps still while it counts, even in fonts whose digits differ. */
+.clock__digit {
+  display: inline-block;
+  width: calc(var(--digit-w) + var(--tracking, 0em));
+  letter-spacing: 0;
+  text-align: center;
 }
 
 /* Fixed-width digits without forcing direction (for text mixed with words). */

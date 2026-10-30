@@ -6,6 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::fonts;
 use crate::sound;
 use crate::timer::TimerConfig;
 
@@ -53,6 +54,12 @@ pub struct Settings {
     /// System-wide start/pause shortcut such as "Ctrl+Alt+Space"; empty = off.
     /// Changed only through its command, which checks it can be registered.
     pub global_shortcut: String,
+    /// Interface font: a bundled font id (js/font-list.js), "system:<family>"
+    /// or "file:<id>". Kept per device: installed fonts and added files are
+    /// not the same on another device.
+    pub font_ui: String,
+    /// Timer digits font: the same choices, or "ui" to follow the interface font.
+    pub font_timer: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -89,6 +96,8 @@ impl Default for Settings {
             launch_at_startup: false,
             mini_opacity: 92,
             global_shortcut: DEFAULT_SHORTCUT.to_string(),
+            font_ui: fonts::DEFAULT_FONT.to_string(),
+            font_timer: fonts::SAME_AS_UI.to_string(),
         }
     }
 }
@@ -148,6 +157,12 @@ impl Settings {
         {
             self.global_shortcut = d.global_shortcut;
         }
+        if !fonts::is_choice(&self.font_ui, false) {
+            self.font_ui = d.font_ui;
+        }
+        if !fonts::is_choice(&self.font_timer, true) {
+            self.font_timer = d.font_timer;
+        }
         let dc = CustomTheme::default();
         for (value, fallback) in [
             (&mut self.custom_theme.background, dc.background),
@@ -192,8 +207,8 @@ fn is_hex_color(s: &str) -> bool {
 }
 
 /// The settings every linked device shares: the timer, goals, appearance,
-/// language and alert sound. Volume and everything about windows, startup
-/// and shortcuts stay with each device.
+/// language and alert sound. Volume, fonts and everything about windows,
+/// startup and shortcuts stay with each device.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Shared {
@@ -274,11 +289,18 @@ mod tests {
 
     #[test]
     fn shared_part_leaves_device_settings_alone() {
-        let phone = Settings { volume: 40, close_action: "quit".into(), global_shortcut: String::new(), ..Settings::default() };
+        let phone = Settings {
+            volume: 40,
+            close_action: "quit".into(),
+            global_shortcut: String::new(),
+            font_ui: "file:0123456789abcdef".into(),
+            ..Settings::default()
+        };
         let pc = Settings { focus_minutes: 50, theme: "dark".into(), language: "ar".into(), volume: 90, ..Settings::default() };
         let merged = phone.clone().with_shared(pc.shared());
         assert_eq!((merged.focus_minutes, merged.theme.as_str(), merged.language.as_str()), (50, "dark", "ar"));
         assert_eq!((merged.volume, merged.close_action.as_str(), merged.global_shortcut.as_str()), (40, "quit", ""));
+        assert_eq!(merged.font_ui, "file:0123456789abcdef");
         assert_eq!(merged.shared(), pc.shared());
     }
 
@@ -323,6 +345,8 @@ mod tests {
             close_action: "minimize".into(),
             mini_opacity: 5,
             global_shortcut: "Ctrl+<script>".into(),
+            font_ui: "ui".into(),
+            font_timer: "system:".into(),
             custom_theme: CustomTheme { background: "red".into(), accent: "#ABCDEF".into(), text: "#12345".into() },
             ..Settings::default()
         }
@@ -335,6 +359,7 @@ mod tests {
         assert_eq!(s.close_action, "tray");
         assert_eq!(s.mini_opacity, 30);
         assert_eq!(s.global_shortcut, DEFAULT_SHORTCUT);
+        assert_eq!((s.font_ui.as_str(), s.font_timer.as_str()), ("plex", "ui"));
         assert_eq!(s.custom_theme.background, d.custom_theme.background);
         assert_eq!(s.custom_theme.accent, "#abcdef");
         assert_eq!(s.custom_theme.text, d.custom_theme.text);
@@ -346,6 +371,14 @@ mod tests {
         assert_eq!(s.focus_minutes, 50);
         assert_eq!(s.theme, "olive");
         assert_eq!(s.short_break_minutes, 5);
+    }
+
+    #[test]
+    fn font_choices_are_kept() {
+        let s = Settings { font_ui: "system:Segoe UI".into(), font_timer: "cairo".into(), ..Settings::default() };
+        assert_eq!(s.clone().sanitized(), s);
+        let t = Settings { font_timer: "file:0123456789abcdef".into(), ..Settings::default() };
+        assert_eq!(t.clone().sanitized(), t);
     }
 
     #[test]
